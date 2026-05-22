@@ -1,4 +1,4 @@
-package com.ingressos.eventservice.service;
+package com.facketmaster.service;
 
 import com.ingressos.eventservice.config.EventoPublisher;
 import com.ingressos.eventservice.dto.*;

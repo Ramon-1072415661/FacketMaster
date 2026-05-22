@@ -1,4 +1,4 @@
-package com.ingressos.eventservice.dto;
+package com.facketmaster.controller.request;
 
 import com.ingressos.eventservice.model.Evento.StatusEvento;
 import jakarta.validation.constraints.*;

@@ -1,4 +1,4 @@
-package com.ingressos.eventservice.exception;
+package com.facketmaster.exception;
 
 import com.ingressos.eventservice.dto.ErroResponse;
 import lombok.extern.slf4j.Slf4j;

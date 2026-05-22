@@ -1,4 +1,4 @@
-package com.ingressos.eventservice.dto;
+package com.facketmaster.controller.request;
 
 import jakarta.validation.constraints.*;
 import lombok.*;

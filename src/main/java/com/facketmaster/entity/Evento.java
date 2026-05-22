@@ -1,4 +1,4 @@
-package com.ingressos.eventservice.model;
+package com.facketmaster.entity;
 
 import jakarta.persistence.*;
 import lombok.*;

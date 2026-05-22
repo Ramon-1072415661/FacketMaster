@@ -1,4 +1,4 @@
-package com.ingressos.eventservice.dto;
+package com.facketmaster.mapper;
 
 import com.ingressos.eventservice.model.Evento;
 import org.springframework.stereotype.Component;

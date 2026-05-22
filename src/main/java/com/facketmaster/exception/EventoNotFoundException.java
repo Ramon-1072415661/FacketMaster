@@ -1,4 +1,4 @@
-package com.ingressos.eventservice.exception;
+package com.facketmaster.exception;
 
 public class EventoNotFoundException extends RuntimeException {
     public EventoNotFoundException(Long id) {

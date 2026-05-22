@@ -1,4 +1,4 @@
-package com.ingressos.eventservice.repository;
+package com.facketmaster.repository;
 
 import com.ingressos.eventservice.model.Evento;
 import com.ingressos.eventservice.model.Evento.StatusEvento;

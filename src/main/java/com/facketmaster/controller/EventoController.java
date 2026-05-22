@@ -1,4 +1,4 @@
-package com.ingressos.eventservice.controller;
+package com.facketmaster.controller;
 
 import com.ingressos.eventservice.dto.*;
 import com.ingressos.eventservice.service.EventoService;
