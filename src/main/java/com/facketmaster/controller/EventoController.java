@@ -22,7 +22,7 @@ public class EventoController {
     private final EventoService service;
     private final EventoService eventoService;
 
-    @PostMapping
+    @PostMapping("/create")
     public ResponseEntity<EventoResponse> criar(@Valid @RequestBody CriarEventoRequest request) {
         return ResponseEntity.status(HttpStatus.CREATED).body(service.criar(request));
     }

@@ -10,13 +10,13 @@ public class EventoMapper {
 
     public Evento toModel(CriarEventoRequest req) {
         return Evento.builder()
-                .nome(req.getNome())
-                .dataEvento(req.getDataEvento())
-                .valor(req.getValor())
-                .quantidadeDisponivel(req.getQuantidadeDisponivel())
-                .quantidadeTotal(req.getQuantidadeDisponivel())
-                .descricao(req.getDescricao())
-                .local(req.getLocal())
+                .nome(req.name())
+                .dataEvento(req.eventDate())
+                .valor(req.ticketPrice())
+                .quantidadeDisponivel(req.totalTicketsAmount())
+                .quantidadeTotal(req.totalTicketsAmount())
+                .descricao(req.description())
+                .local(req.eventLocation())
                 .status(Evento.StatusEvento.ATIVO)
                 .build();
     }

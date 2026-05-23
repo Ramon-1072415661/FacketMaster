@@ -28,13 +28,12 @@ public class EventoService {
 
     @Transactional
     public EventoResponse criar(CriarEventoRequest request) {
-        log.info("Criando evento | nome={}", request.getNome());
+        log.info("Criando evento | nome={}", request.name());
         Evento evento = mapper.toModel(request);
-        Evento salvo = repository.save(evento);
-        EventoResponse response = mapper.toResponse(salvo);
+        Evento eventoSalvo = repository.save(evento);
         //publisher.publicarEventoCriado(response);
-        log.info("Evento criado com sucesso | id={} nome={}", salvo.getId(), salvo.getNome());
-        return response;
+        log.info("Evento criado com sucesso | id={} nome={}", eventoSalvo.getId(), eventoSalvo.getNome());
+        return mapper.toResponse(eventoSalvo);
     }
 
     @Transactional(readOnly = true)
