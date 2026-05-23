@@ -1,6 +1,6 @@
 package com.facketmaster.exception;
 
-import com.ingressos.eventservice.dto.ErroResponse;
+import com.facketmaster.controller.response.*;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;

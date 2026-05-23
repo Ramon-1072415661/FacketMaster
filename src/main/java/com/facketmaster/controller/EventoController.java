@@ -1,7 +1,8 @@
 package com.facketmaster.controller;
 
-import com.ingressos.eventservice.dto.*;
-import com.ingressos.eventservice.service.EventoService;
+import com.facketmaster.controller.request.*;
+import com.facketmaster.controller.response.*;
+import com.facketmaster.service.EventoService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

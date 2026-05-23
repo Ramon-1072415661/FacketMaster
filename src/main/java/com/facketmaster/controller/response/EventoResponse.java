@@ -1,6 +1,6 @@
 package com.facketmaster.controller.response;
 
-import com.ingressos.eventservice.model.Evento.StatusEvento;
+import com.facketmaster.entity.Evento.StatusEvento;
 import lombok.*;
 
 import java.math.BigDecimal;

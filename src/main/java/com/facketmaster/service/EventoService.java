@@ -1,10 +1,13 @@
 package com.facketmaster.service;
 
-import com.ingressos.eventservice.config.EventoPublisher;
-import com.ingressos.eventservice.dto.*;
-import com.ingressos.eventservice.exception.EventoNotFoundException;
-import com.ingressos.eventservice.model.Evento;
-import com.ingressos.eventservice.repository.EventoRepository;
+//import com.facketmaster.config.EventoPublisher;
+import com.facketmaster.controller.request.CriarEventoRequest;
+import com.facketmaster.controller.request.AtualizarEventoRequest;
+import com.facketmaster.controller.response.EventoResponse;
+import com.facketmaster.entity.Evento;
+import com.facketmaster.exception.EventoNotFoundException;
+import com.facketmaster.mapper.EventoMapper;
+import com.facketmaster.repository.EventoRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -20,7 +23,7 @@ public class EventoService {
 
     private final EventoRepository repository;
     private final EventoMapper mapper;
-    private final EventoPublisher publisher;
+    //private final EventoPublisher publisher;
 
     @Transactional
     public EventoResponse criar(CriarEventoRequest request) {
@@ -28,7 +31,7 @@ public class EventoService {
         Evento evento = mapper.toModel(request);
         Evento salvo = repository.save(evento);
         EventoResponse response = mapper.toResponse(salvo);
-        publisher.publicarEventoCriado(response);
+        //publisher.publicarEventoCriado(response);
         log.info("Evento criado com sucesso | id={} nome={}", salvo.getId(), salvo.getNome());
         return response;
     }
@@ -65,7 +68,7 @@ public class EventoService {
         mapper.aplicarAtualizacao(request, evento);
         Evento atualizado = repository.save(evento);
         EventoResponse response = mapper.toResponse(atualizado);
-        publisher.publicarEventoAtualizado(response);
+        //publisher.publicarEventoAtualizado(response);
         log.info("Evento atualizado | id={}", id);
         return response;
     }
@@ -78,7 +81,7 @@ public class EventoService {
         repository.atualizarQuantidade(id, novaQuantidade);
         Evento evento = repository.findById(id).orElseThrow(() -> new EventoNotFoundException(id));
         EventoResponse response = mapper.toResponse(evento);
-        publisher.publicarEventoAtualizado(response);
+        //publisher.publicarEventoAtualizado(response);
         return response;
     }
 
@@ -89,7 +92,7 @@ public class EventoService {
                 .orElseThrow(() -> new EventoNotFoundException(id));
         evento.setStatus(Evento.StatusEvento.CANCELADO);
         repository.save(evento);
-        publisher.publicarEventoDeletado(id);
+        //publisher.publicarEventoDeletado(id);
         log.info("Evento cancelado | id={}", id);
     }
 }

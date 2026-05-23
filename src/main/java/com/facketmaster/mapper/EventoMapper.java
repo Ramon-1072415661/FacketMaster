@@ -1,6 +1,8 @@
 package com.facketmaster.mapper;
 
-import com.ingressos.eventservice.model.Evento;
+import com.facketmaster.entity.Evento;
+import com.facketmaster.controller.request.*;
+import com.facketmaster.controller.response.*;
 import org.springframework.stereotype.Component;
 
 @Component

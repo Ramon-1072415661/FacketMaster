@@ -1,7 +1,7 @@
 package com.facketmaster.repository;
 
-import com.ingressos.eventservice.model.Evento;
-import com.ingressos.eventservice.model.Evento.StatusEvento;
+import com.facketmaster.entity.*;
+import com.facketmaster.entity.Evento.StatusEvento;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
