@@ -20,6 +20,7 @@ import java.util.Map;
 public class EventoController {
 
     private final EventoService service;
+    private final EventoService eventoService;
 
     @PostMapping
     public ResponseEntity<EventoResponse> criar(@Valid @RequestBody CriarEventoRequest request) {
@@ -60,7 +61,12 @@ public class EventoController {
             @RequestBody Map<String, Integer> body) {
         Integer quantidade = body.get("quantidade");
         if (quantidade == null) return ResponseEntity.badRequest().build();
-        return ResponseEntity.ok(service.atualizarQuantidade(id, quantidade));
+
+        if (quantidade < 0) return ResponseEntity.badRequest().build();
+
+        return eventoService.atualizarQuantidade(id, quantidade)
+                .map(ResponseEntity::ok)
+                .orElse(ResponseEntity.notFound().build());
     }
 
     @PatchMapping("/{id}/preco")

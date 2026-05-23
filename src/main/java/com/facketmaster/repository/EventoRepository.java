@@ -32,18 +32,6 @@ public interface EventoRepository extends JpaRepository<Evento, Long> {
     """)
     List<Evento> findByNomeContainingIgnoreCase(@Param("nome") String nome);
 
-    @Modifying
-    @Query("""
-        UPDATE Evento e
-        SET e.quantidadeDisponivel = :quantidade,
-            e.status = CASE
-                WHEN :quantidade = 0 THEN com.ingressos.eventservice.model.Evento$StatusEvento.ESGOTADO
-                ELSE com.ingressos.eventservice.model.Evento$StatusEvento.ATIVO
-            END
-        WHERE e.id = :id
-    """)
-    int atualizarQuantidade(@Param("id") Long id, @Param("quantidade") Integer quantidade);
-
     boolean existsByIdAndStatus(Long id, StatusEvento status);
 
     @Query("SELECT e FROM Evento e WHERE e.id = :id AND e.status != 'CANCELADO'")

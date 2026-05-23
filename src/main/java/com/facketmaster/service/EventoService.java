@@ -15,6 +15,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
 
 @Slf4j
 @Service
@@ -74,15 +75,27 @@ public class EventoService {
     }
 
     @Transactional
-    public EventoResponse atualizarQuantidade(Long id, Integer novaQuantidade) {
+    public Optional<EventoResponse> atualizarQuantidade(Long id, Integer novaQuantidade) {
         log.info("Atualizando quantidade | id={} novaQtd={}", id, novaQuantidade);
-        if (!repository.existsById(id)) throw new EventoNotFoundException(id);
-        if (novaQuantidade < 0) throw new IllegalArgumentException("A quantidade não pode ser negativa");
-        repository.atualizarQuantidade(id, novaQuantidade);
-        Evento evento = repository.findById(id).orElseThrow(() -> new EventoNotFoundException(id));
-        EventoResponse response = mapper.toResponse(evento);
-        //publisher.publicarEventoAtualizado(response);
-        return response;
+        Optional<Evento> optEvento = repository.findById(id);
+        if(optEvento.isPresent()){
+            Evento evento = optEvento.get();
+
+            if(novaQuantidade == 0){
+                evento.setQuantidadeDisponivel(novaQuantidade);
+                evento.setStatus(Evento.StatusEvento.ESGOTADO);
+            }
+            if(novaQuantidade > 0){
+                evento.setQuantidadeDisponivel(novaQuantidade);
+                evento.setStatus(Evento.StatusEvento.ATIVO);
+            }
+
+            repository.save(evento);
+
+            EventoResponse eventoResponse = mapper.toResponse(evento);
+            return Optional.of(eventoResponse);
+        }
+        return Optional.empty();
     }
 
     @Transactional
@@ -94,5 +107,13 @@ public class EventoService {
         repository.save(evento);
         //publisher.publicarEventoDeletado(id);
         log.info("Evento cancelado | id={}", id);
+    }
+
+    // Verifica se o evento esta disponivel (quantidade diferente de 0)
+    public boolean isAvailable(Long id){
+        Optional<Evento> optEvento = repository.findById(id);
+        if(optEvento.isPresent() && optEvento.get().getQuantidadeDisponivel() != 0){
+            return true;
+        } else return false;
     }
 }
