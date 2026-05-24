@@ -27,10 +27,11 @@ public class SecurityConfig {
                 .sessionManagement(session ->
                         session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/auth/register").permitAll()
+                        .requestMatchers("/auth/register", "/auth/login").permitAll()
                         .requestMatchers("/actuator/health", "/actuator/info").permitAll()
 
                         .requestMatchers("/api/**").hasAnyRole("ADMIN", "USER")
+                        .requestMatchers("/auth/admin/register").hasRole("ADMIN")
 
                         .anyRequest().authenticated()
                 )

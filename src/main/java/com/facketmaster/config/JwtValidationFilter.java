@@ -1,6 +1,8 @@
 package com.facketmaster.config;
 
 import com.facketmaster.controller.response.JwtTokenResponse;
+import com.facketmaster.entity.User;
+import com.facketmaster.repository.UserRepository;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -20,6 +22,7 @@ import java.util.Optional;
 public class JwtValidationFilter extends OncePerRequestFilter {
 
     private final TokenService tokenService;
+    private final UserRepository userRepository;
 
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException{
@@ -31,8 +34,14 @@ public class JwtValidationFilter extends OncePerRequestFilter {
             Optional<JwtTokenResponse> optToken = tokenService.verifyToken(token);
 
             if(optToken.isPresent()){
-                UsernamePasswordAuthenticationToken authUser = new UsernamePasswordAuthenticationToken(optToken.get(), null, null);
-                SecurityContextHolder.getContext().setAuthentication(authUser);
+                Optional<User> optUser = userRepository.findByEmail(optToken.get().email());
+
+                if(optUser.isPresent()){
+                    User user = optUser.get();
+
+                    UsernamePasswordAuthenticationToken authUser = new UsernamePasswordAuthenticationToken(optToken.get(), null, user.getAuthorities());
+                    SecurityContextHolder.getContext().setAuthentication(authUser);
+                }
             }
             filterChain.doFilter(request, response);
         } else filterChain.doFilter(request, response);
