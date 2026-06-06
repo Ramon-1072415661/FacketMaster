@@ -22,11 +22,13 @@ public class EventoController {
     private final EventoService service;
     private final EventoService eventoService;
 
-    @PostMapping("/create")
+    //create new event
+    @PostMapping("/admin/create")
     public ResponseEntity<EventoResponse> criar(@Valid @RequestBody CriarEventoRequest request) {
         return ResponseEntity.status(HttpStatus.CREATED).body(service.criar(request));
     }
 
+    //list all active events
     @GetMapping
     public ResponseEntity<List<EventoResponse>> listar(
             @RequestParam(required = false) String nome,
@@ -43,19 +45,22 @@ public class EventoController {
         return ResponseEntity.ok(eventos);
     }
 
+    //search event by id
     @GetMapping("/{id}")
     public ResponseEntity<EventoResponse> buscarPorId(@PathVariable Long id) {
         return ResponseEntity.ok(service.buscarPorId(id));
     }
 
-    @PatchMapping("/{id}")
+    //update event by ID
+    @PatchMapping("/admin/{id}")
     public ResponseEntity<EventoResponse> atualizar(
             @PathVariable Long id,
             @Valid @RequestBody AtualizarEventoRequest request) {
         return ResponseEntity.ok(service.atualizar(id, request));
     }
 
-    @PatchMapping("/{id}/quantidade")
+    //update ticket amount, needs a valid number (not null or less than 0). If new amount is equal to 0, it changes the event status to ESGOTADO
+    @PatchMapping("/admin/quantidade/{id}")
     public ResponseEntity<EventoResponse> atualizarQuantidade(
             @PathVariable Long id,
             @RequestBody Map<String, Integer> body) {
@@ -69,7 +74,8 @@ public class EventoController {
                 .orElse(ResponseEntity.notFound().build());
     }
 
-    @PatchMapping("/{id}/preco")
+    //updates ticket price
+    @PatchMapping("/admin/preco/{id}")
     public ResponseEntity<EventoResponse> atualizarPreco(
             @PathVariable Long id,
             @RequestBody Map<String, java.math.BigDecimal> body) {
@@ -78,9 +84,10 @@ public class EventoController {
         return ResponseEntity.ok(service.atualizar(id, AtualizarEventoRequest.builder().valor(valor).build()));
     }
 
-    @DeleteMapping("/{id}")
+    @DeleteMapping("/admin/{id}")
     public ResponseEntity<Void> deletar(@PathVariable Long id) {
         service.deletar(id);
         return ResponseEntity.noContent().build();
     }
+
 }
