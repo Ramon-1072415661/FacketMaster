@@ -24,6 +24,7 @@ public class EventoService {
 
     private final EventoRepository repository;
     private final EventoMapper mapper;
+    private final EventoMapper eventoMapper;
     //private final EventoPublisher publisher;
 
     @Transactional
@@ -114,5 +115,16 @@ public class EventoService {
         if(optEvento.isPresent() && optEvento.get().getQuantidadeDisponivel() != 0){
             return true;
         } else return false;
+    }
+
+    public EventoResponse updateStatus(Long id, Evento.StatusEvento newStatus){
+        Evento evento = repository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Evento não encontrado")
+                );
+        evento.setStatus(newStatus);
+
+        Evento updatedEvent = repository.save(evento);
+
+        return eventoMapper.toResponse(updatedEvent);
     }
 }

@@ -90,4 +90,12 @@ public class EventoController {
         return ResponseEntity.noContent().build();
     }
 
+    //update event status by ID
+    @PatchMapping("/admin/status/{id}")
+    public ResponseEntity<EventoResponse> updateStatus(
+            @PathVariable Long id,
+            @RequestBody UpdateStatusRequest request){
+            EventoResponse response = eventoService.updateStatus(id, request.status());
+            return ResponseEntity.ok(response);
+    }
 }
