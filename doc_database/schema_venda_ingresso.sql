@@ -268,7 +268,11 @@ CREATE TABLE eventos.tipos_ingresso (
     valor numeric(10,2) NOT NULL,
     quant_total integer NOT NULL,
     quant_disp integer NOT NULL,
-    status eventos.status_ingresso_tipo DEFAULT 'DISPONIVEL'::eventos.status_ingresso_tipo
+    status eventos.status_ingresso_tipo DEFAULT 'DISPONIVEL'::eventos.status_ingresso_tipo,
+    CONSTRAINT chk_valor_positivo CHECK (valor > 0),
+    CONSTRAINT chk_quant_total_positivo CHECK (quant_total > 0),
+    CONSTRAINT chk_quant_disp_nao_negativa CHECK (quant_disp >= 0),
+    CONSTRAINT chk_quant_disp_limite CHECK (quant_disp <= quant_total)
 );
 
 
@@ -348,7 +352,10 @@ CREATE TABLE vendas.itens_pedido (
     tipo_ingresso_id bigint NOT NULL,
     quantidade integer NOT NULL,
     valor_uni numeric(10,2) NOT NULL,
-    subtotal numeric(10,2) NOT NULL
+    subtotal numeric(10,2) NOT NULL,
+    CONSTRAINT chk_quantidade_positiva CHECK (quantidade > 0),
+    CONSTRAINT chk_valor_uni_positivo CHECK (valor_uni > 0),
+    CONSTRAINT chk_subtotal_positivo CHECK (subtotal > 0)
 );
 
 
@@ -390,7 +397,8 @@ CREATE TABLE vendas.pagamentos (
     transaction_id character varying(255),
     pago_em timestamp without time zone,
     valor numeric(10,2),
-    status vendas.status_pagamento DEFAULT 'PENDENTE'::vendas.status_pagamento
+    status vendas.status_pagamento DEFAULT 'PENDENTE'::vendas.status_pagamento,
+    CONSTRAINT chk_pagamento_valor_positivo CHECK (valor > 0)
 );
 
 
@@ -430,7 +438,8 @@ CREATE TABLE vendas.pedidos (
     usuario_id bigint NOT NULL,
     status vendas.status_pedido DEFAULT 'PENDENTE'::vendas.status_pedido,
     valor_total numeric(10,2) NOT NULL,
-    criado_em timestamp without time zone DEFAULT CURRENT_TIMESTAMP
+    criado_em timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT chk_valor_total_positivo CHECK (valor_total > 0)
 );
 
 
