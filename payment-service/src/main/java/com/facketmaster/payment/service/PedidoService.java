@@ -1,0 +1,123 @@
+package com.facketmaster.payment.service;
+
+import com.facketmaster.payment.controller.request.CriarPedidoRequest;
+import com.facketmaster.payment.controller.response.PedidoResponse;
+import com.facketmaster.payment.entity.Pagamento;
+import com.facketmaster.payment.entity.Pedido;
+import com.facketmaster.payment.enums.StatusPagamento;
+import com.facketmaster.payment.enums.StatusPedido;
+import com.facketmaster.payment.exception.PedidoNotFoundException;
+import com.facketmaster.payment.mapper.PedidoMapper;
+import com.facketmaster.payment.messaging.PaymentPublisher;
+import com.facketmaster.payment.messaging.PedidoPagamentoMessage;
+import com.facketmaster.payment.repository.PagamentoRepository;
+import com.facketmaster.payment.repository.PedidoRepository;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.math.BigDecimal;
+import java.util.List;
+import java.util.Optional;
+import java.util.UUID;
+
+/**
+ * Orquestra a criação de pedidos e publicação na fila de mensageria.
+ * <p>
+ * Fluxo de criação:
+ * 1. Persiste o Pedido com status AGUARDANDO_PAGAMENTO
+ * 2. Cria o Pagamento inicial (PENDENTE)
+ * 3. Publica PedidoPagamentoMessage na fila RabbitMQ
+ * 4. Retorna o PedidoResponse imediatamente (resposta síncrona)
+ * 5. O processamento real acontece de forma assíncrona no PaymentConsumer
+ */
+@Slf4j
+@Service
+@RequiredArgsConstructor
+public class PedidoService {
+
+    private final PedidoRepository pedidoRepository;
+    private final PagamentoRepository pagamentoRepository;
+    private final PedidoMapper mapper;
+    private final PaymentPublisher publisher;
+    private final PedidoCacheService cacheService;
+    private final ProcessamentoPagamentoService processamentoService;
+
+    @Transactional
+    public PedidoResponse criar(CriarPedidoRequest request) {
+        log.info("[PEDIDO] Criando pedido | eventoId={} usuario={} metodo={}",
+                request.getEventoId(), request.getUsuarioId(), request.getMetodoPagamento());
+
+        BigDecimal valorTotal = request.getValorUnitario()
+                .multiply(BigDecimal.valueOf(request.getQuantidade()));
+
+        Pedido pedido = Pedido.builder()
+                .eventoId(request.getEventoId())
+                .usuarioId(request.getUsuarioId())
+                .quantidade(request.getQuantidade())
+                .valorUnitario(request.getValorUnitario())
+                .valorTotal(valorTotal)
+                .metodoPagamento(request.getMetodoPagamento())
+                .statusPedido(StatusPedido.AGUARDANDO_PAGAMENTO)
+                .build();
+
+        pedido = pedidoRepository.save(pedido);
+
+        Pagamento pagamento = Pagamento.builder()
+                .pedido(pedido)
+                .metodoPagamento(request.getMetodoPagamento())
+                .statusPagamento(StatusPagamento.PENDENTE)
+                .tentativas(0)
+                .build();
+        pagamento = pagamentoRepository.save(pagamento);
+
+        cacheService.atualizarCache(pedido, pagamento, List.of());
+
+        PedidoPagamentoMessage message = mapper.toMessage(pedido, request);
+        publisher.publicarPedido(message);
+
+        log.info("[PEDIDO] Pedido criado e publicado na fila | pedidoId={}", pedido.getId());
+        return mapper.toResponse(pedido, pagamento, List.of());
+    }
+
+    @Transactional(readOnly = true)
+    public PedidoResponse buscarPorId(UUID id) {
+        Optional<PedidoStatusCache> cached = cacheService.buscarPorId(id.toString());
+        if (cached.isPresent()) {
+            return mapper.fromCache(cached.get());
+        }
+
+        Pedido pedido = pedidoRepository.findById(id)
+                .orElseThrow(() -> new PedidoNotFoundException(id));
+
+        Pagamento pagamento = pagamentoRepository
+                .findTopByPedidoIdOrderByCriadoEmDesc(id)
+                .orElseThrow(() -> new PedidoNotFoundException(id));
+
+        return mapper.toResponse(pedido, pagamento, pedido.getIngressos());
+    }
+
+    @Transactional(readOnly = true)
+    public List<PedidoResponse> listarPorUsuario(String usuarioId) {
+        return pedidoRepository.findByUsuarioIdOrderByCriadoEmDesc(usuarioId)
+                .stream()
+                .map(p -> {
+                    Optional<PedidoStatusCache> cached = cacheService.buscarPorId(p.getId().toString());
+                    if (cached.isPresent()) return mapper.fromCache(cached.get());
+
+                    Pagamento pag = pagamentoRepository
+                            .findTopByPedidoIdOrderByCriadoEmDesc(p.getId())
+                            .orElse(Pagamento.builder()
+                                    .statusPagamento(StatusPagamento.PENDENTE).build());
+                    return mapper.toResponse(p, pag, p.getIngressos());
+                })
+                .toList();
+    }
+
+    @Transactional
+    public PedidoResponse confirmarPagamento(UUID pedidoId) {
+        processamentoService.confirmarPagamento(pedidoId);
+        return buscarPorId(pedidoId);
+    }
+}

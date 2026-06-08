@@ -1,0 +1,29 @@
+# ─────────────────────────────────────────────────────────────
+# .dockerignore – Exclui arquivos desnecessários do contexto
+# de build do Docker, reduzindo tamanho e invalidações de cache.
+# ─────────────────────────────────────────────────────────────
+
+# Git
+.git
+.github
+.gitignore
+
+# Artefatos de build Maven (evita invalidar cache de deps)
+**/target
+
+# Arquivos de sistema macOS
+**/.DS_Store
+__MACOSX
+
+# Credenciais e segredos — nunca enviar ao daemon Docker
+.env
+*.env
+
+# Documentação e arquivos de desenvolvimento
+*.md
+LICENSE
+
+# IDEs
+.idea
+*.iml
+.vscode

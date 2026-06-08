@@ -1,0 +1,53 @@
+spring:
+  application:
+    name: event-service
+
+  datasource:
+    url: jdbc:postgresql://postgres:5432/facketmaster # Corrigido para URL direta
+    username: ${DB_USER}
+    password: ${DB_PASSWORD}
+    driver-class-name: org.postgresql.Driver
+
+  jpa:
+    database-platform: org.hibernate.dialect.PostgreSQLDialect
+    show-sql: false
+    hibernate:
+      ddl-auto: none # Alterado de 'validate' para 'none'
+
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+    baseline-on-migrate: true
+    validate-on-migrate: false # Adicionado para desenvolvimento
+    repair-on-migrate: true # Adicionado para desenvolvimento
+    clean-before-validate: true # Adicionado para garantir limpeza
+    clean-on-validation-error: true # Adicionado para garantir limpeza em caso de erro
+
+server:
+  port: 8081
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+  endpoint:
+    health:
+      show-details: always
+  metrics:
+    tags:
+      application: ${spring.application.name}
+
+logging:
+  level:
+    com.facketmaster: INFO
+    org.springframework.web: WARN
+    org.flywaydb: INFO
+
+app:
+  jwt:
+    secret: ${JWT_SECRET}
+    expiracao-ms: ${JWT_EXPIRACAO_MS:86400000}
+  auth:
+    admin-user: ${AUTH_USER}
+    admin-password: ${AUTH_PASSWORD}

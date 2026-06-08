@@ -1,0 +1,17 @@
+global:
+  scrape_interval: 10s
+
+scrape_configs:
+  - job_name: 'event-service'
+    metrics_path: '/actuator/prometheus'
+    static_configs:
+      - targets:
+          - 'event-service-1:8081'
+          - 'event-service-2:8081'
+
+  - job_name: 'payment-service'
+    metrics_path: '/actuator/prometheus'
+    static_configs:
+      - targets:
+          - 'payment-service-1:8082'
+          - 'payment-service-2:8082'

@@ -1,0 +1,66 @@
+{
+  "name": "global",
+  "variables": [
+    {
+      "name": "base_url_event_service",
+      "value": "http://localhost:8081",
+      "type": "text",
+      "enabled": true,
+      "secret": false
+    },
+    {
+      "name": "base_url_payment_service",
+      "value": "http://localhost:8082",
+      "type": "text",
+      "enabled": true,
+      "secret": false
+    },
+    {
+      "name": "user_token",
+      "value": "",
+      "type": "text",
+      "enabled": true,
+      "secret": false
+    },
+    {
+      "name": "admin_token",
+      "value": "",
+      "type": "text",
+      "enabled": true,
+      "secret": false
+    },
+    {
+      "name": "user_id",
+      "value": "",
+      "type": "text",
+      "enabled": true,
+      "secret": false
+    },
+    {
+      "name": "admin_id",
+      "value": "",
+      "type": "text",
+      "enabled": true,
+      "secret": false
+    },
+    {
+      "name": "event_id",
+      "value": "",
+      "type": "text",
+      "enabled": true,
+      "secret": false
+    },
+    {
+      "name": "order_id",
+      "value": "",
+      "type": "text",
+      "enabled": true,
+      "secret": false
+    }
+  ],
+  "info": {
+    "type": "bruno-environment",
+    "exportedAt": "2026-06-07T17:16:50.488Z",
+    "exportedUsing": "Bruno/v3.4.2"
+  }
+}

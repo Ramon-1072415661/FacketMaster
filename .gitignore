@@ -8,6 +8,9 @@ notes.txt
 !**/src/main/**/target/
 !**/src/test/**/target/
 
+# Env file
+*.env
+
 # Log file
 *.log
 
@@ -17,9 +20,14 @@ notes.txt
 # Mobile Tools for Java (J2ME)
 .mtj.tmp/
 
-### IntelliJ IDEA ###
+# IntelliJ IDEA #§
 .idea
-event-service.iml
+
+# VS Code #
+.vscode/
+
+# GitHub #
+.github
 
 # Package Files #
 *.jar

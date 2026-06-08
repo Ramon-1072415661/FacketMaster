@@ -1,0 +1,19 @@
+meta {
+  name: Get Order by ID
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{base_url_payment_service}}/api/v1/pedidos/{{order_id}}
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJhZG1pbkBleGFtcGxlLmNvbSIsInVzZXJJZCI6MSwicm9sZSI6IkFETUlOIiwiaWF0IjoxNzgwODc4ODk2LCJleHAiOjE3ODA5NjUyOTZ9.tGvogSRcB4tRLs6JaPpDaokkPOyF4Tw0iK01tfPrXMM
+}
+
+vars:pre-request {
+  order_id: eaeda606-f32b-414b-b1a5-240254ce84bc
+}

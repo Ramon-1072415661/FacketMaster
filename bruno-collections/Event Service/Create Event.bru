@@ -1,0 +1,38 @@
+meta {
+  name: Create Event
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{base_url_event_service}}/api/v1/eventos/admin/create
+  body: json
+  auth: bearer
+}
+
+headers {
+  Content-Type: application/json
+}
+
+auth:bearer {
+  token: 
+}
+
+body:json {
+  {
+    "name": "Show da Banda Rock",
+    "description": "Um show de rock imperdível!",
+    "ticketPrice": 75.50,
+    "eventDate": "25/12/2024 20:00",
+    "eventLocation": "Estádio Rock",
+    "totalTicketsAmount": 200
+  }
+}
+
+script:post-response {
+  const response = res.getBody();
+  if (response && response.id) {
+    bru.setVar('event_id', response.id);
+    console.log('Event ID saved:', response.id);
+  }
+}

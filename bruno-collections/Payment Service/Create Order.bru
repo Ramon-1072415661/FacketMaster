@@ -1,0 +1,45 @@
+meta {
+  name: Create Order
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{base_url_payment_service}}/api/v1/pedidos
+  body: json
+  auth: bearer
+}
+
+headers {
+  Content-Type: application/json
+}
+
+auth:bearer {
+  token: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJhZG1pbkBleGFtcGxlLmNvbSIsInVzZXJJZCI6MSwicm9sZSI6IkFETUlOIiwiaWF0IjoxNzgwODc2MTM5LCJleHAiOjE3ODA5NjI1Mzl9.ReU-dKpiiGqpHye8zlbELB-XCvvKXcq6hvqkPX42ILk
+}
+
+body:json {
+  {
+    "usuarioId": "{{user_id}}",
+    "eventoId": "{{event_id}}",
+    "quantidade": 2,
+    "valorUnitario": 75.50,
+    "metodoPagamento": "CARTAO_CREDITO",
+    "dadosCartao": {
+      "numero": "1234.5678.9012.3456",
+      "nomeTitular": "Joao Silva",
+      "validade": "12/28",
+      "cvv": "123",
+      "parcelas": 3,
+      "bandeira": "VISA"
+    }
+  }
+}
+
+script:post-response {
+  const response = res.getBody();
+  if (response && response.id) {
+    bru.setVar('order_id', response.id);
+    console.log('Order ID saved:', response.id);
+  }
+}

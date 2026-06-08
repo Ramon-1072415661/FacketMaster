@@ -1,0 +1,21 @@
+meta {
+  name: Update Event Quantity
+  type: http
+  seq: 5
+}
+
+patch {
+  url: {{base_url_event_service}}/api/v1/eventos/admin/quantidade/{{event_id}}
+  body: json
+  auth: bearer
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "quantidade": 200
+  }
+}
