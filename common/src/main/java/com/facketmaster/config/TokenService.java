@@ -1,6 +1,5 @@
 package com.facketmaster.config;
 
-
 import com.auth0.jwt.JWT;
 import com.auth0.jwt.algorithms.Algorithm;
 import com.auth0.jwt.exceptions.JWTVerificationException;
@@ -19,18 +18,19 @@ public class TokenService {
     @Value("${JWT_SECRET}")
     private String secret;
 
-    public String generateToken(User user){
+    public String generateToken(User user) {
         Algorithm alg = Algorithm.HMAC256(secret);
 
         return JWT.create()
                 .withSubject(user.getEmail())
                 .withClaim("userId", user.getId())
+                .withClaim("role", user.getRole().name())
                 .withIssuedAt(Instant.now())
                 .withExpiresAt(Instant.now().plusSeconds(86400))
                 .sign(alg);
     }
 
-    public Optional<JwtTokenResponse> verifyToken(String token){
+    public Optional<JwtTokenResponse> verifyToken(String token) {
         try {
             Algorithm alg = Algorithm.HMAC256(secret);
 
@@ -41,6 +41,7 @@ public class TokenService {
             return Optional.of(JwtTokenResponse.builder()
                     .email(decode.getSubject())
                     .id(decode.getClaim("userId").asLong())
+                    .role(decode.getClaim("role").asString())
                     .build());
 
         } catch (JWTVerificationException e) {

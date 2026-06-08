@@ -17,14 +17,14 @@ public class UserService {
     private final PasswordEncoder passwordEncoder;
 
 
-    public User saveUser(User user){
+    public User saveUser(User user) {
         String password = user.getPassword();
         user.setRole(Role.USER);
         user.setPassword(passwordEncoder.encode((password)));
-       return userRepository.save(user);
+        return userRepository.save(user);
     }
 
-    public User saveAdmin(User user){
+    public User saveAdmin(User user) {
         String password = user.getPassword();
         user.setRole(Role.ADMIN);
         user.setPassword(passwordEncoder.encode(password));
