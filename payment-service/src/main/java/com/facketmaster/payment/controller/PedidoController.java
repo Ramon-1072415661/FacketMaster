@@ -1,0 +1,61 @@
+package com.facketmaster.payment.controller;
+
+import com.facketmaster.payment.controller.request.CriarPedidoRequest;
+import com.facketmaster.payment.controller.response.PedidoResponse;
+import com.facketmaster.payment.service.PedidoService;
+import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
+import java.util.UUID;
+
+@Slf4j
+@RestController
+@RequestMapping("/api/v1/pedidos")
+@RequiredArgsConstructor
+public class PedidoController {
+
+    private final PedidoService pedidoService;
+
+    @PostMapping
+    public ResponseEntity<PedidoResponse> criar(
+            @Valid @RequestBody CriarPedidoRequest request) {
+
+        log.info(
+                "[API] POST /pedidos | eventoId={} metodo={}",
+                request.getEventoId(),
+                request.getMetodoPagamento());
+
+        PedidoResponse response = pedidoService.criar(request);
+
+        return ResponseEntity
+                .status(HttpStatus.ACCEPTED)
+                .body(response);
+    }
+
+    @GetMapping("/{id}")
+    public ResponseEntity<PedidoResponse> buscarPorId(@PathVariable("id") UUID id) {
+
+        return ResponseEntity.ok(pedidoService.buscarPorId(id));
+    }
+
+    @GetMapping
+    public ResponseEntity<List<PedidoResponse>> listarPorUsuario(
+            @RequestParam("usuarioId") String usuarioId) {
+
+        return ResponseEntity.ok(pedidoService.listarPorUsuario(usuarioId));
+    }
+
+    @PostMapping("/{id}/confirmar")
+    public ResponseEntity<PedidoResponse> confirmarPagamento(
+            @PathVariable("id") UUID id) {
+
+        log.info("[API] POST /pedidos/{}/confirmar (webhook simulado)", id);
+
+        return ResponseEntity.ok(pedidoService.confirmarPagamento(id));
+    }
+}
