@@ -1,0 +1,31 @@
+meta {
+  name: Register Admin
+  type: http
+  seq: 3
+}
+
+post {
+  url: {{base_url_event_service}}/auth/admin/register
+  body: json
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "name": "Admin User",
+    "email": "admin@example.com",
+    "password": "adminpassword"
+  }
+}
+
+script:post-response {
+  const response = res.getBody();
+  if (response && response.id) {
+    bru.setVar('admin_id', response.id);
+    console.log('Admin ID saved:', response.id);
+  }
+}

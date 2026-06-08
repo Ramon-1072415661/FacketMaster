@@ -1,0 +1,15 @@
+meta {
+  name: List Events
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{base_url_event_service}}/api/v1/eventos
+  body: none
+  auth: none
+}
+params {
+  nome:
+  apenasDisponiveis: false
+}

@@ -1,0 +1,14 @@
+meta {
+  name: List Orders by User
+  type: http
+  seq: 3
+}
+
+get {
+  url: {{base_url_payment_service}}/api/v1/pedidos
+  body: none
+  auth: none
+}
+params {
+  usuarioId: {{user_id}}
+}

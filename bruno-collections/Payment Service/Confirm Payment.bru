@@ -1,0 +1,19 @@
+meta {
+  name: Confirm Payment
+  type: http
+  seq: 4
+}
+
+post {
+  url: {{base_url_payment_service}}/api/v1/pedidos/{{order_id}}/confirmar
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJhZG1pbkBleGFtcGxlLmNvbSIsInVzZXJJZCI6MSwicm9sZSI6IkFETUlOIiwiaWF0IjoxNzgwODc2MTM5LCJleHAiOjE3ODA5NjI1Mzl9.ReU-dKpiiGqpHye8zlbELB-XCvvKXcq6hvqkPX42ILk
+}
+
+vars:pre-request {
+  order_id: eaeda606-f32b-414b-b1a5-240254ce84bc
+}

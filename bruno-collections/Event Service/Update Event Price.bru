@@ -1,0 +1,21 @@
+meta {
+  name: Update Event Price
+  type: http
+  seq: 6
+}
+
+patch {
+  url: {{base_url_event_service}}/api/v1/eventos/admin/preco/{{event_id}}
+  body: json
+  auth: bearer
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "valor": 80.00
+  }
+}

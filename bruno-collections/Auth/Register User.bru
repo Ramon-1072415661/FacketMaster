@@ -1,0 +1,31 @@
+meta {
+  name: Register User
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{base_url_event_service}}/auth/register
+  body: json
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "name": "Teste User",
+    "email": "user@example.com",
+    "password": "password123"
+  }
+}
+
+script:post-response {
+  const response = res.getBody();
+  if (response && response.id) {
+    bru.setVar('user_id', response.id);
+    console.log('User ID saved:', response.id);
+  }
+}

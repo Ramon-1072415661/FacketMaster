@@ -1,0 +1,27 @@
+meta {
+  name: Update Event
+  type: http
+  seq: 4
+}
+
+patch {
+  url: {{base_url_event_service}}/api/v1/eventos/admin/{{event_id}}
+  body: json
+  auth: bearer
+}
+
+headers {
+  Content-Type: application/json
+}
+
+auth:bearer {
+  token: 
+}
+
+body:json {
+  {
+    "name": "Show da Banda Rock - Edição Especial",
+    "description": "Um show de rock imperdível com convidados!",
+    "location": "Arena Rock"
+  }
+}

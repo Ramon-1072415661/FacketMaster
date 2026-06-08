@@ -1,0 +1,27 @@
+meta {
+  name: Login Admin
+  type: http
+  seq: 4
+}
+
+post {
+  url: {{base_url_event_service}}/auth/login
+  body: json
+  auth: none
+}
+headers {
+  Content-Type: application/json
+}
+body:json {
+  {
+    "email": "admin@example.com",
+    "password": "adminpassword"
+  }
+}
+script:post-response {
+  const token = res.getBody();
+  if (token) {
+    bru.setVar('admin_token', token);
+    console.log('Admin Token saved:', token);
+  }
+}

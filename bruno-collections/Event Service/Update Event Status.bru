@@ -1,0 +1,22 @@
+meta {
+  name: Update Event Status
+  type: http
+  seq: 7
+}
+
+patch {
+  url: {{base_url_event_service}}/api/v1/eventos/admin/status/{{event_id}}
+  body: json
+  auth: bearer
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "status": "CANCELADO"
+    
+  }
+}
