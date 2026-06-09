@@ -103,6 +103,7 @@ services:
       dockerfile: event-service/Dockerfile
     container_name: facketmaster-event-service-1
     environment:
+      INSTANCE_NAME: event-service-1
       DB_URL: jdbc:postgresql://postgres:5432/facketmaster
       DB_USER: ${DB_USER:-facketmaster}
       DB_PASSWORD: ${DB_PASSWORD:-facketmaster123}
@@ -141,6 +142,7 @@ services:
       dockerfile: event-service/Dockerfile
     container_name: facketmaster-event-service-2
     environment:
+      INSTANCE_NAME: event-service-2
       DB_URL: jdbc:postgresql://postgres:5432/facketmaster
       DB_USER: ${DB_USER:-facketmaster}
       DB_PASSWORD: ${DB_PASSWORD:-facketmaster123}
@@ -182,6 +184,7 @@ services:
       dockerfile: payment-service/Dockerfile
     container_name: facketmaster-payment-service-1
     environment:
+      INSTANCE_NAME: payment-service-1
       DB_URL: jdbc:postgresql://postgres:5432/facketmaster
       DB_USER: ${DB_USER:-facketmaster}
       DB_PASSWORD: ${DB_PASSWORD:-facketmaster123}
@@ -221,6 +224,7 @@ services:
       dockerfile: payment-service/Dockerfile
     container_name: facketmaster-payment-service-2
     environment:
+      INSTANCE_NAME: payment-service-2
       DB_URL: jdbc:postgresql://postgres:5432/facketmaster
       DB_USER: ${DB_USER:-facketmaster}
       DB_PASSWORD: ${DB_PASSWORD:-facketmaster123}
