@@ -24,8 +24,10 @@ body:json {
 
 script:post-response {
   const response = res.getBody();
-  if (response && response.id) {
-    bru.setEnvVar('admin_id', response.id);
+  if (response && response.id && res.getStatus() === 201) {
+    bru.setEnvVar('admin_id', String(response.id));
     console.log('Admin ID saved:', response.id);
+  } else {
+    console.log('Register failed, status:', res.getStatus());
   }
 }

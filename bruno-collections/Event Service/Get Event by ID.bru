@@ -1,7 +1,7 @@
 meta {
   name: Get Event by ID
   type: http
-  seq: 3
+  seq: 2
 }
 
 get {
@@ -14,3 +14,15 @@ auth:bearer {
   token: {{user_token}}
 }
 
+vars:pre-request {
+  event_id: 2
+  user_token: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ1c2VyQGV4YW1wbGUuY29tIiwidXNlcklkIjoxLCJyb2xlIjoiVVNFUiIsImlhdCI6MTc4MTM3MzM1NCwiZXhwIjoxNzgxNDU5NzU0fQ.UC9hHWnNyy_B1x9Cz1B2GAXfIZOahQ6LOFgw6eJcxiw
+}
+
+script:post-response {
+  const response = res.getBody();
+  if (response && response.id) {
+    bru.setEnvVar('event_id', response.id);
+    console.log('Event ID saved:', response.id);
+  }
+}
