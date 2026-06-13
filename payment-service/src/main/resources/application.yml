@@ -22,16 +22,16 @@ spring:
 
   data:
     redis:
-      host: ${REDIS_HOST:redis}
-      port: ${REDIS_PORT:6379}
-      password: ${REDIS_PASSWORD:}
+      host: ${REDIS_HOST}
+      port: ${REDIS_PORT}
+      password: ${REDIS_PASSWORD}
 
   rabbitmq:
-    host: ${RABBITMQ_HOST:rabbitmq}
-    port: ${RABBITMQ_PORT:5672}
+    host: ${RABBITMQ_HOST}
+    port: ${RABBITMQ_PORT}
     username: ${RABBITMQ_USER}
     password: ${RABBITMQ_PASSWORD}
-    virtual-host: ${RABBITMQ_VHOST:/}
+    virtual-host: ${RABBITMQ_VHOST}
 
 server:
   port: 8082
@@ -58,16 +58,16 @@ app:
   jwt:
     secret: ${JWT_SECRET}
   payment:
-    cache-ttl-seconds: ${PAYMENT_CACHE_TTL_SECONDS:600}
+    cache-ttl-seconds: ${PAYMENT_CACHE_TTL_SECONDS}
   event-service:
-    base-url: ${EVENT_SERVICE_URL:http://nginx}
+    base-url: ${EVENT_SERVICE_URL}
 
 payment:
   mock:
-    delay-ms: ${PAYMENT_MOCK_DELAY_MS:500}
+    delay-ms: ${PAYMENT_MOCK_DELAY_MS}
 
 pix:
-  expiracao-minutos: ${PIX_EXPIRACAO_MINUTOS:30}
+  expiracao-minutos: ${PIX_EXPIRACAO_MINUTOS}
 
 boleto:
-  expiracao-dias: ${BOLETO_EXPIRACAO_DIAS:3}
+  expiracao-dias: ${BOLETO_EXPIRACAO_DIAS}

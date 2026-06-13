@@ -24,11 +24,11 @@ spring:
     clean-on-validation-error: true # Adicionado para garantir limpeza em caso de erro
 
   rabbitmq:
-    host: ${RABBITMQ_HOST:rabbitmq}
-    port: ${RABBITMQ_PORT:5672}
+    host: ${RABBITMQ_HOST}
+    port: ${RABBITMQ_PORT}
     username: ${RABBITMQ_USER}
     password: ${RABBITMQ_PASSWORD}
-    virtual-host: ${RABBITMQ_VHOST:/}
+    virtual-host: ${RABBITMQ_VHOST}
 
 server:
   port: 8081
@@ -54,7 +54,7 @@ logging:
 app:
   jwt:
     secret: ${JWT_SECRET}
-    expiracao-ms: ${JWT_EXPIRACAO_MS:86400000}
+    expiracao-ms: ${JWT_EXPIRACAO_MS}
   auth:
     admin-user: ${AUTH_USER}
     admin-password: ${AUTH_PASSWORD}
