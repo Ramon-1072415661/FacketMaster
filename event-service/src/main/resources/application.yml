@@ -17,11 +17,6 @@ spring:
   flyway:
     enabled: true
     locations: classpath:db/migration
-    baseline-on-migrate: true
-    validate-on-migrate: false # Adicionado para desenvolvimento
-    repair-on-migrate: true # Adicionado para desenvolvimento
-    clean-before-validate: true # Adicionado para garantir limpeza
-    clean-on-validation-error: true # Adicionado para garantir limpeza em caso de erro
 
   rabbitmq:
     host: ${RABBITMQ_HOST}

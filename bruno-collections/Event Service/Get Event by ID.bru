@@ -14,11 +14,6 @@ auth:bearer {
   token: {{user_token}}
 }
 
-vars:pre-request {
-  event_id: 2
-  user_token: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ1c2VyQGV4YW1wbGUuY29tIiwidXNlcklkIjoxLCJyb2xlIjoiVVNFUiIsImlhdCI6MTc4MTM3MzM1NCwiZXhwIjoxNzgxNDU5NzU0fQ.UC9hHWnNyy_B1x9Cz1B2GAXfIZOahQ6LOFgw6eJcxiw
-}
-
 script:post-response {
   const response = res.getBody();
   if (response && response.id) {
