@@ -23,6 +23,13 @@ spring:
     clean-before-validate: true # Adicionado para garantir limpeza
     clean-on-validation-error: true # Adicionado para garantir limpeza em caso de erro
 
+  rabbitmq:
+    host: ${RABBITMQ_HOST:rabbitmq}
+    port: ${RABBITMQ_PORT:5672}
+    username: ${RABBITMQ_USER}
+    password: ${RABBITMQ_PASSWORD}
+    virtual-host: ${RABBITMQ_VHOST:/}
+
 server:
   port: 8081
 
