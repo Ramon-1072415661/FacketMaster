@@ -1,5 +1,6 @@
 package com.facketmaster.payment.controller;
 
+import com.facketmaster.controller.response.JwtTokenResponse;
 import com.facketmaster.payment.controller.request.CriarPedidoRequest;
 import com.facketmaster.payment.controller.response.PedidoResponse;
 import com.facketmaster.payment.service.PedidoService;
@@ -8,6 +9,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -24,14 +26,16 @@ public class PedidoController {
     @PostMapping
     public ResponseEntity<PedidoResponse> criar(
             @Valid @RequestBody CriarPedidoRequest request,
+            @AuthenticationPrincipal JwtTokenResponse user,
             @RequestHeader(value = "Authorization", required = false) String authorizationHeader) {
 
         log.info(
-                "[API] POST /pedidos | eventoId={} metodo={}",
+                "[API] POST /pedidos | eventoId={} usuarioId={} metodo={}",
                 request.getEventoId(),
+                user.id(),
                 request.getMetodoPagamento());
 
-        PedidoResponse response = pedidoService.criar(request, authorizationHeader);
+        PedidoResponse response = pedidoService.criar(request, user.id().toString(), authorizationHeader);
 
         return ResponseEntity
                 .status(HttpStatus.ACCEPTED)
@@ -46,9 +50,9 @@ public class PedidoController {
 
     @GetMapping
     public ResponseEntity<List<PedidoResponse>> listarPorUsuario(
-            @RequestParam("usuarioId") String usuarioId) {
+            @AuthenticationPrincipal JwtTokenResponse user) {
 
-        return ResponseEntity.ok(pedidoService.listarPorUsuario(usuarioId));
+        return ResponseEntity.ok(pedidoService.listarPorUsuario(user.id().toString()));
     }
 
     @PostMapping("/{id}/confirmar")

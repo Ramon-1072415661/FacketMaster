@@ -49,12 +49,10 @@ public class PedidoService {
     private final EventoClient eventoClient;
 
     @Transactional
-    public PedidoResponse criar(CriarPedidoRequest request, String authorizationHeader) {
+    public PedidoResponse criar(CriarPedidoRequest request, String usuarioId, String authorizationHeader) {
         log.info("[PEDIDO] Criando pedido | eventoId={} usuario={} metodo={}",
-                request.getEventoId(), request.getUsuarioId(), request.getMetodoPagamento());
+                request.getEventoId(), usuarioId, request.getMetodoPagamento());
 
-        // Reserva atômica de ingressos no event-service ANTES de criar o pedido,
-        // evitando overselling. Lança exceção (409) se não houver disponibilidade.
         eventoClient.reservar(request.getEventoId(), request.getQuantidade(), authorizationHeader);
 
         try {
@@ -63,7 +61,7 @@ public class PedidoService {
 
             Pedido pedido = Pedido.builder()
                     .eventoId(request.getEventoId())
-                    .usuarioId(request.getUsuarioId())
+                    .usuarioId(usuarioId)
                     .quantidade(request.getQuantidade())
                     .valorUnitario(request.getValorUnitario())
                     .valorTotal(valorTotal)

@@ -17,10 +17,6 @@ public class CriarPedidoRequest {
     @NotNull(message = "O ID do evento é obrigatório")
     private Long eventoId;
 
-    @NotBlank(message = "O ID do usuário é obrigatório")
-    @Size(max = 100)
-    private String usuarioId;
-
     @NotNull(message = "A quantidade é obrigatória")
     @Min(value = 1, message = "A quantidade mínima é 1")
     @Max(value = 10, message = "Limite de 10 ingressos por pedido")
