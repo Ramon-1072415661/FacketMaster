@@ -44,7 +44,7 @@
             O Spring Boot BOM gerencia o lombok no classpath de compilação,
             mas o annotationProcessorPaths precisa da versão declarada aqui.
         -->
-        <lombok.version>1.18.36</lombok.version>
+        <lombok.version>1.18.46</lombok.version>
     </properties>
 
     <dependencyManagement>
