@@ -25,16 +25,6 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
-/**
- * Orquestra a criação de pedidos e publicação na fila de mensageria.
- * <p>
- * Fluxo de criação:
- * 1. Persiste o Pedido com status AGUARDANDO_PAGAMENTO
- * 2. Cria o Pagamento inicial (PENDENTE)
- * 3. Publica PedidoPagamentoMessage na fila RabbitMQ
- * 4. Retorna o PedidoResponse imediatamente (resposta síncrona)
- * 5. O processamento real acontece de forma assíncrona no PaymentConsumer
- */
 @Slf4j
 @Service
 @RequiredArgsConstructor
@@ -86,8 +76,6 @@ public class PedidoService {
 
             PedidoPagamentoMessage message = mapper.toMessage(pedido, request);
 
-            // Publish only after the transaction commits so the consumer always
-            // finds the Pedido in the DB (avoids the publish-before-commit race condition).
             TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
                 @Override
                 public void afterCommit() {

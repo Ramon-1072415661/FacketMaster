@@ -26,7 +26,6 @@ public class EventoService {
 
     private final EventoRepository repository;
     private final EventoMapper mapper;
-    // private final EventoPublisher publisher;
 
     @Transactional
     public EventoResponse criar(CriarEventoRequest request) {
@@ -34,7 +33,6 @@ public class EventoService {
         Evento evento = mapper.toModel(request);
         Evento salvo = repository.save(evento);
         EventoResponse response = mapper.toResponse(salvo);
-        // publisher.publicarEventoCriado(response);
         log.info("Evento criado com sucesso | id={} nome={}", salvo.getId(), salvo.getNome());
         return response;
     }
@@ -71,7 +69,6 @@ public class EventoService {
         mapper.aplicarAtualizacao(request, evento);
         Evento atualizado = repository.save(evento);
         EventoResponse response = mapper.toResponse(atualizado);
-        // publisher.publicarEventoAtualizado(response);
         log.info("Evento atualizado | id={}", id);
         return response;
     }
@@ -113,7 +110,6 @@ public class EventoService {
                 .orElseThrow(() -> new EventoNotFoundException(id));
         evento.setStatus(Evento.StatusEvento.CANCELADO);
         repository.save(evento);
-        // publisher.publicarEventoDeletado(id);
         log.info("Evento cancelado | id={}", id);
     }
 

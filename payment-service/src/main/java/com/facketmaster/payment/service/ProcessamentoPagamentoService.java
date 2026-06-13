@@ -26,19 +26,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
-/**
- * Coração do payment-service: processa mensagens da fila de forma assíncrona.
- * <p>
- * Fluxo completo:
- * 1. Recebe PedidoPagamentoMessage da fila
- * 2. Carrega o Pedido do banco (criado pelo PedidoService antes de publicar)
- * 3. Atualiza status para PROCESSANDO
- * 4. Chama o gateway correto (mock)
- * 5. Atualiza Pagamento e Pedido com o resultado
- * 6. Se APROVADO: emite os Ingressos
- * 7. Atualiza o cache Redis
- * 8. Publica ResultadoPagamentoMessage na fila de resultado
- */
 @Slf4j
 @Service
 @RequiredArgsConstructor
@@ -72,8 +59,6 @@ public class ProcessamentoPagamentoService {
         pedidoRepository.save(pedido);
         emailService.notificar(pedido.getUsuarioEmail(), pedido.getId(), StatusPedido.PROCESSANDO);
 
-        // PedidoService.criar() already persists a Pagamento (PENDENTE) before publishing
-        // the message. Find it here instead of creating a duplicate.
         Pagamento pagamento = pagamentoRepository
                 .findTopByPedidoIdOrderByCriadoEmDesc(message.getPedidoId())
                 .orElseGet(() -> {
@@ -127,9 +112,6 @@ public class ProcessamentoPagamentoService {
                 pedido.getId(), pedido.getStatusPedido());
     }
 
-    /**
-     * Confirma o pagamento de PIX ou Boleto (chamado via webhook simulado).
-     */
     @Transactional
     public void confirmarPagamento(UUID pedidoId) {
         Pedido pedido = pedidoRepository.findById(pedidoId)
