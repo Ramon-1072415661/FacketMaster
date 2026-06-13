@@ -49,6 +49,7 @@ public class ProcessamentoPagamentoService {
     private final GatewayFactory gatewayFactory;
     private final PaymentPublisher publisher;
     private final PedidoCacheService cacheService;
+    private final EmailService emailService;
 
     @Transactional
     public void processar(PedidoPagamentoMessage message) {
@@ -68,6 +69,7 @@ public class ProcessamentoPagamentoService {
 
         pedido.setStatusPedido(StatusPedido.PROCESSANDO);
         pedidoRepository.save(pedido);
+        emailService.notificar(pedido.getUsuarioEmail(), pedido.getId(), StatusPedido.PROCESSANDO);
 
         // PedidoService.criar() already persists a Pagamento (PENDENTE) before publishing
         // the message. Find it here instead of creating a duplicate.
@@ -101,12 +103,14 @@ public class ProcessamentoPagamentoService {
             pagamento.setDataAprovacao(LocalDateTime.now());
             pedido.setStatusPedido(StatusPedido.APROVADO);
             ingressosEmitidos = emitirIngressos(pedido);
+            emailService.notificar(pedido.getUsuarioEmail(), pedido.getId(), StatusPedido.APROVADO);
             log.info("[PROCESSAMENTO] Pagamento APROVADO | pedidoId={}", pedido.getId());
 
         } else {
             pagamento.setStatusPagamento(StatusPagamento.RECUSADO);
             pagamento.setMotivoRecusa(resultado.motivoRecusa());
             pedido.setStatusPedido(StatusPedido.RECUSADO);
+            emailService.notificar(pedido.getUsuarioEmail(), pedido.getId(), StatusPedido.RECUSADO);
             log.warn("[PROCESSAMENTO] Pagamento RECUSADO | pedidoId={} motivo={}",
                     pedido.getId(), resultado.motivoRecusa());
         }
@@ -148,6 +152,7 @@ public class ProcessamentoPagamentoService {
         pedidoRepository.save(pedido);
         cacheService.atualizarCache(pedido, pagamento, ingressosEmitidos);
         publisher.publicarResultado(montarResultado(pedido, pagamento, ingressosEmitidos));
+        emailService.notificar(pedido.getUsuarioEmail(), pedidoId, StatusPedido.APROVADO);
 
         log.info("[PROCESSAMENTO] Pagamento confirmado via webhook | pedidoId={}", pedidoId);
     }

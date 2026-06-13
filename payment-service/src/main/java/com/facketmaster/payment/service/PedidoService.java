@@ -47,9 +47,10 @@ public class PedidoService {
     private final PedidoCacheService cacheService;
     private final ProcessamentoPagamentoService processamentoService;
     private final EventoClient eventoClient;
+    private final EmailService emailService;
 
     @Transactional
-    public PedidoResponse criar(CriarPedidoRequest request, String usuarioId, String authorizationHeader) {
+    public PedidoResponse criar(CriarPedidoRequest request, String usuarioId, String usuarioEmail, String authorizationHeader) {
         log.info("[PEDIDO] Criando pedido | eventoId={} usuario={} metodo={}",
                 request.getEventoId(), usuarioId, request.getMetodoPagamento());
 
@@ -62,6 +63,7 @@ public class PedidoService {
             Pedido pedido = Pedido.builder()
                     .eventoId(request.getEventoId())
                     .usuarioId(usuarioId)
+                    .usuarioEmail(usuarioEmail)
                     .quantidade(request.getQuantidade())
                     .valorUnitario(request.getValorUnitario())
                     .valorTotal(valorTotal)
@@ -70,6 +72,7 @@ public class PedidoService {
                     .build();
 
             pedido = pedidoRepository.save(pedido);
+            emailService.notificar(usuarioEmail, pedido.getId(), StatusPedido.AGUARDANDO_PAGAMENTO);
 
             Pagamento pagamento = Pagamento.builder()
                     .pedido(pedido)

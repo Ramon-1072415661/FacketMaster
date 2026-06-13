@@ -35,7 +35,7 @@ public class PedidoController {
                 user.id(),
                 request.getMetodoPagamento());
 
-        PedidoResponse response = pedidoService.criar(request, user.id().toString(), authorizationHeader);
+        PedidoResponse response = pedidoService.criar(request, user.id().toString(), user.email(), authorizationHeader);
 
         return ResponseEntity
                 .status(HttpStatus.ACCEPTED)

@@ -32,6 +32,9 @@ public class Pedido {
     @Column(nullable = false, length = 100)
     private String usuarioId;
 
+    @Column(length = 255)
+    private String usuarioEmail;
+
     @Column(nullable = false)
     private Integer quantidade;
 
