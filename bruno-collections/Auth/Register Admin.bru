@@ -25,7 +25,7 @@ body:json {
 script:post-response {
   const response = res.getBody();
   if (response && response.id) {
-    bru.setVar('admin_id', response.id);
+    bru.setEnvVar('admin_id', response.id);
     console.log('Admin ID saved:', response.id);
   }
 }

@@ -25,7 +25,7 @@ body:json {
 script:post-response {
   const response = res.getBody();
   if (response && response.id) {
-    bru.setVar('user_id', response.id);
+    bru.setEnvVar('user_id', response.id);
     console.log('User ID saved:', response.id);
   }
 }

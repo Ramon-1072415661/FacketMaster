@@ -9,19 +9,22 @@ post {
   body: json
   auth: none
 }
+
 headers {
   Content-Type: application/json
 }
+
 body:json {
   {
     "email": "user@example.com",
     "password": "password123"
   }
 }
+
 script:post-response {
   const token = res.getBody();
   if (token) {
-    bru.setVar('user_token', token);
+    bru.setEnvVar('user_token', token);
     console.log('User Token saved:', token);
   }
 }

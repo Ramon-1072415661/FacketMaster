@@ -14,8 +14,17 @@ headers {
   Content-Type: application/json
 }
 
+auth:bearer {
+  token: {{admin_token}}
+}
+
 body:json {
   {
     "quantidade": 200
   }
+}
+
+vars:pre-request {
+  admin_token: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJhZG1pbkBleGFtcGxlLmNvbSIsInVzZXJJZCI6Miwicm9sZSI6IkFETUlOIiwiaWF0IjoxNzgxMzY1NjQwLCJleHAiOjE3ODE0NTIwNDB9.qI-bkd70u-EUABSraZ9Q15PQy7zVa5mbjzoID5Jo0K0
+  event_id: 1
 }

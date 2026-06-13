@@ -9,6 +9,7 @@ delete {
   body: none
   auth: bearer
 }
-headers {
-  Authorization: Bearer {{admin_token}}
+
+auth:bearer {
+  token: {{admin_token}}
 }

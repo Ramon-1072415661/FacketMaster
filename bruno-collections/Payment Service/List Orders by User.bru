@@ -7,8 +7,13 @@ meta {
 get {
   url: {{base_url_payment_service}}/api/v1/pedidos
   body: none
-  auth: none
+  auth: bearer
 }
+
+auth:bearer {
+  token: {{user_token}}
+}
+
 params {
   usuarioId: {{user_id}}
 }

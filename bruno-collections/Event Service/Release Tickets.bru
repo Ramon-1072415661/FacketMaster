@@ -1,20 +1,30 @@
 meta {
-  name: Get Order by ID
+  name: Release Tickets
   type: http
-  seq: 2
+  seq: 10
 }
 
-get {
-  url: {{base_url_payment_service}}/api/v1/pedidos/{{order_id}}
-  body: none
+post {
+  url: {{base_url_event_service}}/api/v1/eventos/{{event_id}}/liberar
+  body: json
   auth: bearer
+}
+
+headers {
+  Content-Type: application/json
 }
 
 auth:bearer {
   token: {{user_token}}
 }
 
+body:json {
+  {
+    "quantidade": 2
+  }
+}
+
 vars:pre-request {
-  order_id: 747fe175-001f-4079-9b9c-49436d30e554
+  event_id: 2
   user_token: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ1c2VyQGV4YW1wbGUuY29tIiwidXNlcklkIjoxLCJyb2xlIjoiVVNFUiIsImlhdCI6MTc4MTM2NDUzNCwiZXhwIjoxNzgxNDUwOTM0fQ.rLkZeix1o2SNrGEEhrmgOtDZu8yGuJg0QlFyztTnTp4
 }
