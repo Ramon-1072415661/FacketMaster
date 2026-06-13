@@ -1,5 +1,6 @@
 package com.facketmaster.payment.service;
 
+import com.facketmaster.payment.client.EventoClient;
 import com.facketmaster.payment.controller.request.CriarPedidoRequest;
 import com.facketmaster.payment.controller.response.PedidoResponse;
 import com.facketmaster.payment.entity.Pagamento;
@@ -16,6 +17,8 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import java.math.BigDecimal;
 import java.util.List;
@@ -43,42 +46,62 @@ public class PedidoService {
     private final PaymentPublisher publisher;
     private final PedidoCacheService cacheService;
     private final ProcessamentoPagamentoService processamentoService;
+    private final EventoClient eventoClient;
 
     @Transactional
-    public PedidoResponse criar(CriarPedidoRequest request) {
+    public PedidoResponse criar(CriarPedidoRequest request, String authorizationHeader) {
         log.info("[PEDIDO] Criando pedido | eventoId={} usuario={} metodo={}",
                 request.getEventoId(), request.getUsuarioId(), request.getMetodoPagamento());
 
-        BigDecimal valorTotal = request.getValorUnitario()
-                .multiply(BigDecimal.valueOf(request.getQuantidade()));
+        // Reserva atômica de ingressos no event-service ANTES de criar o pedido,
+        // evitando overselling. Lança exceção (409) se não houver disponibilidade.
+        eventoClient.reservar(request.getEventoId(), request.getQuantidade(), authorizationHeader);
 
-        Pedido pedido = Pedido.builder()
-                .eventoId(request.getEventoId())
-                .usuarioId(request.getUsuarioId())
-                .quantidade(request.getQuantidade())
-                .valorUnitario(request.getValorUnitario())
-                .valorTotal(valorTotal)
-                .metodoPagamento(request.getMetodoPagamento())
-                .statusPedido(StatusPedido.AGUARDANDO_PAGAMENTO)
-                .build();
+        try {
+            BigDecimal valorTotal = request.getValorUnitario()
+                    .multiply(BigDecimal.valueOf(request.getQuantidade()));
 
-        pedido = pedidoRepository.save(pedido);
+            Pedido pedido = Pedido.builder()
+                    .eventoId(request.getEventoId())
+                    .usuarioId(request.getUsuarioId())
+                    .quantidade(request.getQuantidade())
+                    .valorUnitario(request.getValorUnitario())
+                    .valorTotal(valorTotal)
+                    .metodoPagamento(request.getMetodoPagamento())
+                    .statusPedido(StatusPedido.AGUARDANDO_PAGAMENTO)
+                    .build();
 
-        Pagamento pagamento = Pagamento.builder()
-                .pedido(pedido)
-                .metodoPagamento(request.getMetodoPagamento())
-                .statusPagamento(StatusPagamento.PENDENTE)
-                .tentativas(0)
-                .build();
-        pagamento = pagamentoRepository.save(pagamento);
+            pedido = pedidoRepository.save(pedido);
 
-        cacheService.atualizarCache(pedido, pagamento, List.of());
+            Pagamento pagamento = Pagamento.builder()
+                    .pedido(pedido)
+                    .metodoPagamento(request.getMetodoPagamento())
+                    .statusPagamento(StatusPagamento.PENDENTE)
+                    .tentativas(0)
+                    .build();
+            pagamento = pagamentoRepository.save(pagamento);
 
-        PedidoPagamentoMessage message = mapper.toMessage(pedido, request);
-        publisher.publicarPedido(message);
+            cacheService.atualizarCache(pedido, pagamento, List.of());
 
-        log.info("[PEDIDO] Pedido criado e publicado na fila | pedidoId={}", pedido.getId());
-        return mapper.toResponse(pedido, pagamento, List.of());
+            PedidoPagamentoMessage message = mapper.toMessage(pedido, request);
+
+            // Publish only after the transaction commits so the consumer always
+            // finds the Pedido in the DB (avoids the publish-before-commit race condition).
+            TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+                @Override
+                public void afterCommit() {
+                    publisher.publicarPedido(message);
+                }
+            });
+
+            log.info("[PEDIDO] Pedido criado e publicado na fila | pedidoId={}", pedido.getId());
+            return mapper.toResponse(pedido, pagamento, List.of());
+        } catch (Exception ex) {
+            log.error("[PEDIDO] Falha ao criar pedido após reserva de ingressos, liberando reserva | eventoId={} quantidade={}",
+                    request.getEventoId(), request.getQuantidade(), ex);
+            eventoClient.liberar(request.getEventoId(), request.getQuantidade(), authorizationHeader);
+            throw ex;
+        }
     }
 
     @Transactional(readOnly = true)
