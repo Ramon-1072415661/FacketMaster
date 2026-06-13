@@ -144,4 +144,10 @@ public class PedidoService {
         processamentoService.confirmarPagamento(pedidoId);
         return buscarPorId(pedidoId);
     }
+
+    @Transactional
+    public PedidoResponse cancelarPedido(UUID pedidoId) {
+        processamentoService.cancelarPedido(pedidoId);
+        return buscarPorId(pedidoId);
+    }
 }

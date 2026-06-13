@@ -56,6 +56,7 @@ app:
     secret: ${JWT_SECRET}
   payment:
     cache-ttl-seconds: ${PAYMENT_CACHE_TTL_SECONDS}
+    expiracao-check-ms: 60000
   event-service:
     base-url: ${EVENT_SERVICE_URL}
 

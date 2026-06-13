@@ -17,6 +17,7 @@ import com.facketmaster.payment.repository.PagamentoRepository;
 import com.facketmaster.payment.repository.PedidoRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -102,8 +103,8 @@ public class ProcessamentoPagamentoService {
             pagamento.setStatusPagamento(StatusPagamento.APROVADO);
             pagamento.setDataAprovacao(LocalDateTime.now());
             pedido.setStatusPedido(StatusPedido.APROVADO);
-            ingressosEmitidos = emitirIngressos(pedido);
             emailService.notificar(pedido.getUsuarioEmail(), pedido.getId(), StatusPedido.APROVADO);
+            ingressosEmitidos = emitirIngressos(pedido);
             log.info("[PROCESSAMENTO] Pagamento APROVADO | pedidoId={}", pedido.getId());
 
         } else {
@@ -155,6 +156,56 @@ public class ProcessamentoPagamentoService {
         emailService.notificar(pedido.getUsuarioEmail(), pedidoId, StatusPedido.APROVADO);
 
         log.info("[PROCESSAMENTO] Pagamento confirmado via webhook | pedidoId={}", pedidoId);
+    }
+
+    @Transactional
+    public void cancelarPedido(UUID pedidoId) {
+        Pedido pedido = pedidoRepository.findById(pedidoId)
+                .orElseThrow(() -> new IllegalStateException("Pedido não encontrado: " + pedidoId));
+
+        if (pedido.getStatusPedido() == StatusPedido.APROVADO
+                || pedido.getStatusPedido() == StatusPedido.CANCELADO
+                || pedido.getStatusPedido() == StatusPedido.EXPIRADO) {
+            throw new IllegalStateException("Pedido não pode ser cancelado no status atual: " + pedido.getStatusPedido());
+        }
+
+        Pagamento pagamento = pagamentoRepository
+                .findTopByPedidoIdOrderByCriadoEmDesc(pedidoId)
+                .orElseThrow(() -> new IllegalStateException("Pagamento não encontrado para pedido: " + pedidoId));
+
+        pagamento.setStatusPagamento(StatusPagamento.CANCELADO);
+        pedido.setStatusPedido(StatusPedido.CANCELADO);
+
+        pagamentoRepository.save(pagamento);
+        pedidoRepository.save(pedido);
+        cacheService.atualizarCache(pedido, pagamento, List.of());
+        emailService.notificar(pedido.getUsuarioEmail(), pedidoId, StatusPedido.CANCELADO);
+
+        log.info("[PROCESSAMENTO] Pedido cancelado | pedidoId={}", pedidoId);
+    }
+
+    @Scheduled(fixedDelayString = "${app.payment.expiracao-check-ms:60000}")
+    @Transactional
+    public void expirarPedidosVencidos() {
+        List<Pagamento> vencidos = pagamentoRepository
+                .findByStatusPagamentoAndDataExpiracaoBefore(StatusPagamento.PROCESSANDO, LocalDateTime.now());
+
+        for (Pagamento pagamento : vencidos) {
+            Pedido pedido = pagamento.getPedido();
+            if (pedido.getStatusPedido() != StatusPedido.PROCESSANDO) {
+                continue;
+            }
+
+            pagamento.setStatusPagamento(StatusPagamento.EXPIRADO);
+            pedido.setStatusPedido(StatusPedido.EXPIRADO);
+
+            pagamentoRepository.save(pagamento);
+            pedidoRepository.save(pedido);
+            cacheService.atualizarCache(pedido, pagamento, List.of());
+            emailService.notificar(pedido.getUsuarioEmail(), pedido.getId(), StatusPedido.EXPIRADO);
+
+            log.info("[EXPIRACAO] Pedido expirado | pedidoId={}", pedido.getId());
+        }
     }
 
     private Pagamento criarPagamentoInicial(Pedido pedido, MetodoPagamento metodo) {

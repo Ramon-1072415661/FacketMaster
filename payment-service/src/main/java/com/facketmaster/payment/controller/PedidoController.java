@@ -63,4 +63,13 @@ public class PedidoController {
 
         return ResponseEntity.ok(pedidoService.confirmarPagamento(id));
     }
+
+    @PostMapping("/{id}/cancelar")
+    public ResponseEntity<PedidoResponse> cancelarPedido(
+            @PathVariable("id") UUID id) {
+
+        log.info("[API] POST /pedidos/{}/cancelar", id);
+
+        return ResponseEntity.ok(pedidoService.cancelarPedido(id));
+    }
 }
