@@ -59,7 +59,8 @@ public class ProcessamentoPagamentoService {
                         "Pedido não encontrado: " + message.getPedidoId()));
 
         if (pedido.getStatusPedido() == StatusPedido.APROVADO
-                || pedido.getStatusPedido() == StatusPedido.CANCELADO) {
+                || pedido.getStatusPedido() == StatusPedido.CANCELADO
+                || pedido.getStatusPedido() == StatusPedido.RECUSADO) {
             log.warn("[PROCESSAMENTO] Pedido já finalizado, ignorando | pedidoId={} status={}",
                     pedido.getId(), pedido.getStatusPedido());
             return;
@@ -68,8 +69,14 @@ public class ProcessamentoPagamentoService {
         pedido.setStatusPedido(StatusPedido.PROCESSANDO);
         pedidoRepository.save(pedido);
 
-        Pagamento pagamento = criarPagamentoInicial(pedido, message.getMetodoPagamento());
-        pagamentoRepository.save(pagamento);
+        // PedidoService.criar() already persists a Pagamento (PENDENTE) before publishing
+        // the message. Find it here instead of creating a duplicate.
+        Pagamento pagamento = pagamentoRepository
+                .findTopByPedidoIdOrderByCriadoEmDesc(message.getPedidoId())
+                .orElseGet(() -> {
+                    Pagamento p = criarPagamentoInicial(pedido, message.getMetodoPagamento());
+                    return pagamentoRepository.save(p);
+                });
         cacheService.atualizarCache(pedido, pagamento, List.of());
 
         GatewayPagamento gateway = gatewayFactory.resolver(message.getMetodoPagamento());
@@ -192,6 +199,7 @@ public class ProcessamentoPagamentoService {
                 .pedidoId(pedido.getId())
                 .eventoId(pedido.getEventoId())
                 .usuarioId(pedido.getUsuarioId())
+                .quantidade(pedido.getQuantidade())
                 .statusPedido(pedido.getStatusPedido())
                 .statusPagamento(pagamento.getStatusPagamento())
                 .codigoTransacao(pagamento.getCodigoTransacao())
