@@ -6,6 +6,7 @@ import com.facketmaster.event.controller.request.AtualizarEventoRequest;
 import com.facketmaster.event.controller.request.CriarEventoRequest;
 import com.facketmaster.event.controller.response.EventoResponse;
 import com.facketmaster.event.entity.Evento;
+import com.facketmaster.event.exception.EstoqueInsuficienteException;
 import com.facketmaster.event.exception.EventoNotFoundException;
 import com.facketmaster.event.mapper.EventoMapper;
 import com.facketmaster.event.repository.EventoRepository;
@@ -82,6 +83,12 @@ public class EventoService {
         if (optEvento.isPresent()) {
             Evento evento = optEvento.get();
 
+            if (novaQuantidade > evento.getQuantidadeTotal()) {
+                throw new IllegalArgumentException(
+                        "A quantidade disponível (%d) não pode exceder o total de ingressos do evento (%d)."
+                                .formatted(novaQuantidade, evento.getQuantidadeTotal()));
+            }
+
             if (novaQuantidade == 0) {
                 evento.setQuantidadeDisponivel(novaQuantidade);
                 evento.setStatus(Evento.StatusEvento.ESGOTADO);
@@ -127,5 +134,44 @@ public class EventoService {
         Evento updatedEvent = repository.save(evento);
 
         return mapper.toResponse(updatedEvent);
+    }
+
+    /**
+     * Reserva {@code quantidade} ingressos do evento de forma atômica.
+     * Usado pelo payment-service antes de persistir um pedido, para
+     * evitar overselling.
+     *
+     * @throws EventoNotFoundException        se o evento não existir
+     * @throws EstoqueInsuficienteException    se o evento não estiver ATIVO
+     *                                          ou não houver disponibilidade
+     */
+    @Transactional
+    public void reservar(Long eventoId, Integer quantidade) {
+        if (!repository.existsById(eventoId)) {
+            throw new EventoNotFoundException(eventoId);
+        }
+
+        int linhasAfetadas = repository.reservarQuantidade(eventoId, quantidade);
+        if (linhasAfetadas == 0) {
+            throw new EstoqueInsuficienteException(eventoId);
+        }
+
+        log.info("[ESTOQUE] Reserva efetuada | eventoId={} quantidade={}", eventoId, quantidade);
+    }
+
+    /**
+     * Libera (devolve) {@code quantidade} ingressos previamente reservados
+     * para o evento. Usado quando um pedido é recusado, cancelado ou expira.
+     *
+     * @throws EventoNotFoundException se o evento não existir
+     */
+    @Transactional
+    public void liberar(Long eventoId, Integer quantidade) {
+        int linhasAfetadas = repository.liberarQuantidade(eventoId, quantidade);
+        if (linhasAfetadas == 0) {
+            throw new EventoNotFoundException(eventoId);
+        }
+
+        log.info("[ESTOQUE] Reserva liberada | eventoId={} quantidade={}", eventoId, quantidade);
     }
 }
