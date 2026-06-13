@@ -23,14 +23,15 @@ public class PedidoController {
 
     @PostMapping
     public ResponseEntity<PedidoResponse> criar(
-            @Valid @RequestBody CriarPedidoRequest request) {
+            @Valid @RequestBody CriarPedidoRequest request,
+            @RequestHeader(value = "Authorization", required = false) String authorizationHeader) {
 
         log.info(
                 "[API] POST /pedidos | eventoId={} metodo={}",
                 request.getEventoId(),
                 request.getMetodoPagamento());
 
-        PedidoResponse response = pedidoService.criar(request);
+        PedidoResponse response = pedidoService.criar(request, authorizationHeader);
 
         return ResponseEntity
                 .status(HttpStatus.ACCEPTED)

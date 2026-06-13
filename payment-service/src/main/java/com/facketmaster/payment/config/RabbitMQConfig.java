@@ -16,6 +16,7 @@ public class RabbitMQConfig {
     public static final String EXCHANGE = "facketmaster.pagamentos";
     public static final String QUEUE_PEDIDOS = "pagamentos.pedidos";
     public static final String QUEUE_RESULTADO = "pagamentos.resultado";
+    public static final String QUEUE_RESULTADO_DLQ = "pagamentos.resultado.dlq";
     public static final String QUEUE_DLQ = "pagamentos.pedidos.dlq";
     public static final String EXCHANGE_DLQ = "facketmaster.pagamentos.dlx";
 
@@ -43,7 +44,20 @@ public class RabbitMQConfig {
 
     @Bean
     public Queue queueResultado() {
-        return QueueBuilder.durable(QUEUE_RESULTADO).build();
+        return QueueBuilder.durable(QUEUE_RESULTADO)
+                .withArgument("x-dead-letter-exchange", EXCHANGE_DLQ)
+                .withArgument("x-dead-letter-routing-key", QUEUE_RESULTADO_DLQ)
+                .build();
+    }
+
+    @Bean
+    public Queue queueResultadoDlq() {
+        return QueueBuilder.durable(QUEUE_RESULTADO_DLQ).build();
+    }
+
+    @Bean
+    public Binding bindingResultadoDlq(Queue queueResultadoDlq, DirectExchange dlxExchange) {
+        return BindingBuilder.bind(queueResultadoDlq).to(dlxExchange).with(QUEUE_RESULTADO_DLQ);
     }
 
     @Bean
