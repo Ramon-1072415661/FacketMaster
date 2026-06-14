@@ -1,14 +1,24 @@
 package com.facketmaster.payment.service;
 
+import com.facketmaster.config.AuthenticatedUserProvider;
+import com.facketmaster.controller.response.JwtTokenResponse;
 import com.facketmaster.payment.enums.StatusPedido;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.util.UUID;
 
+import static net.logstash.logback.argument.StructuredArguments.kv;
+
 @Slf4j
 @Service
 public class EmailService {
+
+    private final AuthenticatedUserProvider authenticatedUserProvider;
+
+    public EmailService(AuthenticatedUserProvider authenticatedUserProvider) {
+        this.authenticatedUserProvider = authenticatedUserProvider;
+    }
 
     public void notificar(String destinatario, UUID pedidoId, StatusPedido status) {
         String assunto = resolverAssunto(status);
@@ -16,6 +26,19 @@ public class EmailService {
 
         log.info("[EMAIL MOCK] Para={} | Assunto='{}' | Corpo='{}'",
                 destinatario, assunto, corpo);
+
+        JwtTokenResponse user = authenticatedUserProvider.getCurrentUser();
+
+        log.info(
+                "business_event",
+                kv("event_type", "EMAIL_NOTIFICATION_SENT"),
+                kv("email_reciever", destinatario),
+                kv("email_subject", assunto),
+                kv("email_body", corpo),
+                kv("user_id", user != null ? user.id() : null),
+                kv("user_email", user != null ? user.email() : "unknown"),
+                kv("user_role", user != null ? user.role() : "unknown")
+        );
     }
 
     private String resolverAssunto(StatusPedido status) {

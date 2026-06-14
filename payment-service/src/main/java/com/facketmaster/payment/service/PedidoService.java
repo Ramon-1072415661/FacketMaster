@@ -1,5 +1,7 @@
 package com.facketmaster.payment.service;
 
+import com.facketmaster.config.AuthenticatedUserProvider;
+import com.facketmaster.controller.response.JwtTokenResponse;
 import com.facketmaster.payment.client.EventoClient;
 import com.facketmaster.payment.controller.request.CriarPedidoRequest;
 import com.facketmaster.payment.controller.response.PedidoResponse;
@@ -25,6 +27,8 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
+import static net.logstash.logback.argument.StructuredArguments.kv;
+
 @Slf4j
 @Service
 @RequiredArgsConstructor
@@ -38,11 +42,24 @@ public class PedidoService {
     private final ProcessamentoPagamentoService processamentoService;
     private final EventoClient eventoClient;
     private final EmailService emailService;
+    private final AuthenticatedUserProvider authenticatedUserProvider;
 
     @Transactional
     public PedidoResponse criar(CriarPedidoRequest request, String usuarioId, String usuarioEmail, String authorizationHeader) {
+        JwtTokenResponse user = authenticatedUserProvider.getCurrentUser();
+
         log.info("[PEDIDO] Criando pedido | eventoId={} usuario={} metodo={}",
                 request.getEventoId(), usuarioId, request.getMetodoPagamento());
+
+        log.info(
+                "business_event",
+                kv("event_type", "CREATING_ORDER"),
+                kv("order_id", request.getEventoId()),
+                kv("order_payment_method", request.getMetodoPagamento()),
+                kv("user_id", user != null ? user.id() : null),
+                kv("user_email", user != null ? user.email() : "unknown"),
+                kv("user_role", user != null ? user.role() : "unknown")
+        );
 
         eventoClient.reservar(request.getEventoId(), request.getQuantidade(), authorizationHeader);
 
@@ -84,11 +101,38 @@ public class PedidoService {
             });
 
             log.info("[PEDIDO] Pedido criado e publicado na fila | pedidoId={}", pedido.getId());
+
+
+            log.info(
+                    "business_event",
+                    kv("event_type", "ORDER_CREATED"),
+                    kv("order_id", pedido.getId()),
+                    kv("order_amount", pedido.getQuantidade()),
+                    kv("order_total_value", pedido.getValorTotal()),
+                    kv("order_payment_method", pedido.getMetodoPagamento()),
+                    kv("order_status", pedido.getStatusPedido()),
+                    kv("order_createdAt", pedido.getCriadoEm()),
+                    kv("user_id", user != null ? user.id() : null),
+                    kv("user_email", user != null ? user.email() : "unknown"),
+                    kv("user_role", user != null ? user.role() : "unknown")
+            );
             return mapper.toResponse(pedido, pagamento, List.of());
         } catch (Exception ex) {
             log.error("[PEDIDO] Falha ao criar pedido após reserva de ingressos, liberando reserva | eventoId={} quantidade={}",
                     request.getEventoId(), request.getQuantidade(), ex);
             eventoClient.liberar(request.getEventoId(), request.getQuantidade(), authorizationHeader);
+
+            log.error(
+                    "business_event",
+                    kv("event_type", "ORDER_CREATED_ERROR"),
+                    kv("order_id", request.getEventoId()),
+                    kv("order_amount", request.getQuantidade()),
+                    kv("error_message", ex),
+                    kv("user_id", user != null ? user.id() : null),
+                    kv("user_email", user != null ? user.email() : "unknown"),
+                    kv("user_role", user != null ? user.role() : "unknown")
+            );
+
             throw ex;
         }
     }

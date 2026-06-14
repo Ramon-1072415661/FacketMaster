@@ -26,6 +26,8 @@
                     <fieldName>message</fieldName>
                 </message>
 
+                <arguments/>
+
                 <mdc/>
 
                 <pattern>

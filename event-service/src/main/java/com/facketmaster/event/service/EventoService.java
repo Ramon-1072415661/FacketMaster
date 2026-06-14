@@ -2,6 +2,8 @@ package com.facketmaster.event.service;
 
 //import com.facketmaster.config.EventoPublisher;
 
+import com.facketmaster.config.AuthenticatedUserProvider;
+import com.facketmaster.controller.response.JwtTokenResponse;
 import com.facketmaster.event.controller.request.AtualizarEventoRequest;
 import com.facketmaster.event.controller.request.CriarEventoRequest;
 import com.facketmaster.event.controller.response.EventoResponse;
@@ -19,6 +21,8 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
+import static net.logstash.logback.argument.StructuredArguments.kv;
+
 @Slf4j
 @Service
 @RequiredArgsConstructor
@@ -26,14 +30,32 @@ public class EventoService {
 
     private final EventoRepository repository;
     private final EventoMapper mapper;
+    private final AuthenticatedUserProvider authenticatedUserProvider;
 
     @Transactional
     public EventoResponse criar(CriarEventoRequest request) {
-        log.info("Criando evento | nome={}", request.name());
         Evento evento = mapper.toModel(request);
         Evento salvo = repository.save(evento);
         EventoResponse response = mapper.toResponse(salvo);
-        log.info("Evento criado com sucesso | id={} nome={}", salvo.getId(), salvo.getNome());
+
+        JwtTokenResponse user = authenticatedUserProvider.getCurrentUser();
+
+        log.info(
+                "business_event",
+                kv("event_type", "EVENT_CREATED"),
+                kv("event_id", salvo.getId()),
+                kv("event_name", salvo.getNome()),
+                kv("event_desciption", salvo.getDescricao()),
+                kv("ticket_price", salvo.getValor()),
+                kv("event_date", salvo.getDataEvento()),
+                kv("event_location", salvo.getLocal()),
+                kv("total_tickets", salvo.getQuantidadeTotal()),
+                kv("available_tickets", salvo.getQuantidadeDisponivel()),
+                kv("user_id", user != null ? user.id() : null),
+                kv("user_email", user != null ? user.email() : "unknown"),
+                kv("user_role", user != null ? user.role() : "unknown")
+        );
+
         return response;
     }
 
@@ -63,19 +85,35 @@ public class EventoService {
 
     @Transactional
     public EventoResponse atualizar(Long id, AtualizarEventoRequest request) {
-        log.info("Atualizando evento | id={}", id);
         Evento evento = repository.findByIdAtivo(id)
                 .orElseThrow(() -> new EventoNotFoundException(id));
         mapper.aplicarAtualizacao(request, evento);
         Evento atualizado = repository.save(evento);
         EventoResponse response = mapper.toResponse(atualizado);
-        log.info("Evento atualizado | id={}", id);
+
+        JwtTokenResponse user = authenticatedUserProvider.getCurrentUser();
+
+        log.info(
+                "business_event",
+                kv("event_type", "EVENT_UPDATED"),
+                kv("event_id", atualizado.getId()),
+                kv("new_event_name", atualizado.getNome()),
+                kv("new_event_desciption", atualizado.getDescricao()),
+                kv("new_ticket_price", atualizado.getValor()),
+                kv("new_event_date", atualizado.getDataEvento()),
+                kv("new_event_location", atualizado.getLocal()),
+                kv("new_total_tickets", atualizado.getQuantidadeTotal()),
+                kv("new_available_tickets", atualizado.getQuantidadeDisponivel()),
+                kv("user_id", user != null ? user.id() : null),
+                kv("user_email", user != null ? user.email() : "unknown"),
+                kv("user_role", user != null ? user.role() : "unknown")
+        );
+
         return response;
     }
 
     @Transactional
     public Optional<EventoResponse> atualizarQuantidade(Long id, Integer novaQuantidade) {
-        log.info("Atualizando quantidade | id={} novaQtd={}", id, novaQuantidade);
         Optional<Evento> optEvento = repository.findById(id);
         if (optEvento.isPresent()) {
             Evento evento = optEvento.get();
@@ -97,6 +135,19 @@ public class EventoService {
 
             repository.save(evento);
 
+            JwtTokenResponse user = authenticatedUserProvider.getCurrentUser();
+
+            log.info(
+                    "business_event",
+                    kv("event_type", "EVENT_AMOUNT_UPDATED"),
+                    kv("event_id", evento.getId()),
+                    kv("event_name", evento.getNome()),
+                    kv("ticket_amount", evento.getQuantidadeDisponivel()),
+                    kv("user_id", user != null ? user.id() : null),
+                    kv("user_email", user != null ? user.email() : "unknown"),
+                    kv("user_role", user != null ? user.role() : "unknown")
+            );
+
             EventoResponse eventoResponse = mapper.toResponse(evento);
             return Optional.of(eventoResponse);
         }
@@ -105,12 +156,23 @@ public class EventoService {
 
     @Transactional
     public void deletar(Long id) {
-        log.info("Cancelando evento | id={}", id);
         Evento evento = repository.findById(id)
                 .orElseThrow(() -> new EventoNotFoundException(id));
         evento.setStatus(Evento.StatusEvento.CANCELADO);
         repository.save(evento);
-        log.info("Evento cancelado | id={}", id);
+
+        JwtTokenResponse user = authenticatedUserProvider.getCurrentUser();
+
+        log.info(
+                "business_event",
+                kv("event_type", "EVENT_CANCELLED"),
+                kv("event_id", evento.getId()),
+                kv("event_name", evento.getNome()),
+                kv("event_status", evento.getStatus()),
+                kv("user_id", user != null ? user.id() : null),
+                kv("user_email", user != null ? user.email() : "unknown"),
+                kv("user_role", user != null ? user.role() : "unknown")
+        );
     }
 
     public boolean isAvailable(Long id) {
@@ -128,6 +190,19 @@ public class EventoService {
         evento.setStatus(newStatus);
 
         Evento updatedEvent = repository.save(evento);
+
+        JwtTokenResponse user = authenticatedUserProvider.getCurrentUser();
+
+        log.info(
+                "business_event",
+                kv("event_type", "EVENT_STATUS_UPDATE"),
+                kv("event_id", evento.getId()),
+                kv("event_name", evento.getNome()),
+                kv("event_status", evento.getStatus()),
+                kv("user_id", user != null ? user.id() : null),
+                kv("user_email", user != null ? user.email() : "unknown"),
+                kv("user_role", user != null ? user.role() : "unknown")
+        );
 
         return mapper.toResponse(updatedEvent);
     }
