@@ -21,6 +21,29 @@ public class GlobalExceptionHandler {
         return erro(HttpStatus.NOT_FOUND, "Não Encontrado", ex.getMessage());
     }
 
+    @ExceptionHandler(EventoNotFoundException.class)
+    public ResponseEntity<Map<String, Object>> handleEventoNotFound(EventoNotFoundException ex) {
+        return erro(HttpStatus.NOT_FOUND, "Não Encontrado", ex.getMessage());
+    }
+
+    @ExceptionHandler(EstoqueInsuficienteException.class)
+    public ResponseEntity<Map<String, Object>> handleEstoqueInsuficiente(EstoqueInsuficienteException ex) {
+        log.warn("Estoque insuficiente: {}", ex.getMessage());
+        return erro(HttpStatus.CONFLICT, "Estoque Insuficiente", ex.getMessage());
+    }
+
+    @ExceptionHandler(EventoServiceIndisponivelException.class)
+    public ResponseEntity<Map<String, Object>> handleEventoServiceIndisponivel(EventoServiceIndisponivelException ex) {
+        log.error("event-service indisponível: {}", ex.getMessage(), ex);
+        return erro(HttpStatus.SERVICE_UNAVAILABLE, "Serviço Indisponível", ex.getMessage());
+    }
+
+    @ExceptionHandler(IllegalArgumentException.class)
+    public ResponseEntity<Map<String, Object>> handleIllegalArgument(IllegalArgumentException ex) {
+        log.warn("Argumento inválido: {}", ex.getMessage());
+        return erro(HttpStatus.BAD_REQUEST, "Requisição Inválida", ex.getMessage());
+    }
+
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<Map<String, Object>> handleValidation(MethodArgumentNotValidException ex) {
         String detalhes = ex.getBindingResult().getFieldErrors().stream()

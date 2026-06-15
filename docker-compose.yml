@@ -34,8 +34,8 @@ services:
     image: postgres:16-alpine
     container_name: facketmaster-postgres
     environment:
-      POSTGRES_USER: ${DB_USER:-facketmaster}
-      POSTGRES_PASSWORD: ${DB_PASSWORD:-facketmaster123}
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
       POSTGRES_DB: facketmaster
     ports:
       - "5432:5432"
@@ -44,7 +44,7 @@ services:
     networks:
       - facketmaster-network
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-facketmaster}"]
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER}"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -77,9 +77,9 @@ services:
     image: rabbitmq:3.13-management-alpine
     container_name: facketmaster-rabbitmq
     environment:
-      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER:-guest}
-      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD:-guest}
-      RABBITMQ_DEFAULT_VHOST: ${RABBITMQ_VHOST:-/}
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD}
+      RABBITMQ_DEFAULT_VHOST: ${RABBITMQ_VHOST}
     ports:
       - "5672:5672"
       - "15672:15672"
@@ -103,22 +103,23 @@ services:
       dockerfile: event-service/Dockerfile
     container_name: facketmaster-event-service-1
     environment:
+      INSTANCE_NAME: event-service-1
       DB_URL: jdbc:postgresql://postgres:5432/facketmaster
-      DB_USER: ${DB_USER:-facketmaster}
-      DB_PASSWORD: ${DB_PASSWORD:-facketmaster123}
-      JWT_SECRET: ${JWT_SECRET:-seu_jwt_secret_super_secreto_aqui_2026}
-      JWT_EXPIRACAO_MS: ${JWT_EXPIRACAO_MS:-86400000}
-      AUTH_USER: ${AUTH_USER:-admin}
-      AUTH_PASSWORD: ${AUTH_PASSWORD:-admin123}
-      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-dev}
-      RABBITMQ_HOST: rabbitmq
-      RABBITMQ_PORT: 5672
-      RABBITMQ_USER: ${RABBITMQ_USER:-guest}
-      RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD:-guest}
-      RABBITMQ_VHOST: ${RABBITMQ_VHOST:-/}
-      REDIS_HOST: redis
-      REDIS_PORT: 6379
-      REDIS_PASSWORD: ${REDIS_PASSWORD:-}
+      DB_USER: ${DB_USER}
+      DB_PASSWORD: ${DB_PASSWORD}
+      JWT_SECRET: ${JWT_SECRET}
+      JWT_EXPIRACAO_MS: ${JWT_EXPIRACAO_MS}
+      AUTH_USER: ${AUTH_USER}
+      AUTH_PASSWORD: ${AUTH_PASSWORD}
+      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE}
+      RABBITMQ_HOST: ${RABBITMQ_HOST}
+      RABBITMQ_PORT: ${RABBITMQ_PORT}
+      RABBITMQ_USER: ${RABBITMQ_USER}
+      RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD}
+      RABBITMQ_VHOST: ${RABBITMQ_VHOST}
+      REDIS_HOST: ${REDIS_HOST}
+      REDIS_PORT: ${REDIS_PORT}
+      REDIS_PASSWORD: ${REDIS_PASSWORD}
     depends_on:
       postgres:
         condition: service_healthy
@@ -141,22 +142,23 @@ services:
       dockerfile: event-service/Dockerfile
     container_name: facketmaster-event-service-2
     environment:
+      INSTANCE_NAME: event-service-2
       DB_URL: jdbc:postgresql://postgres:5432/facketmaster
-      DB_USER: ${DB_USER:-facketmaster}
-      DB_PASSWORD: ${DB_PASSWORD:-facketmaster123}
-      JWT_SECRET: ${JWT_SECRET:-seu_jwt_secret_super_secreto_aqui_2026}
-      JWT_EXPIRACAO_MS: ${JWT_EXPIRACAO_MS:-86400000}
-      AUTH_USER: ${AUTH_USER:-admin}
-      AUTH_PASSWORD: ${AUTH_PASSWORD:-admin123}
-      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-dev}
-      RABBITMQ_HOST: rabbitmq
-      RABBITMQ_PORT: 5672
-      RABBITMQ_USER: ${RABBITMQ_USER:-guest}
-      RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD:-guest}
-      RABBITMQ_VHOST: ${RABBITMQ_VHOST:-/}
-      REDIS_HOST: redis
-      REDIS_PORT: 6379
-      REDIS_PASSWORD: ${REDIS_PASSWORD:-}
+      DB_USER: ${DB_USER}
+      DB_PASSWORD: ${DB_PASSWORD}
+      JWT_SECRET: ${JWT_SECRET}
+      JWT_EXPIRACAO_MS: ${JWT_EXPIRACAO_MS}
+      AUTH_USER: ${AUTH_USER}
+      AUTH_PASSWORD: ${AUTH_PASSWORD}
+      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE}
+      RABBITMQ_HOST: ${RABBITMQ_HOST}
+      RABBITMQ_PORT: ${RABBITMQ_PORT}
+      RABBITMQ_USER: ${RABBITMQ_USER}
+      RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD}
+      RABBITMQ_VHOST: ${RABBITMQ_VHOST}
+      REDIS_HOST: ${REDIS_HOST}
+      REDIS_PORT: ${REDIS_PORT}
+      REDIS_PASSWORD: ${REDIS_PASSWORD}
     depends_on:
       postgres:
         condition: service_healthy
@@ -182,23 +184,26 @@ services:
       dockerfile: payment-service/Dockerfile
     container_name: facketmaster-payment-service-1
     environment:
+      INSTANCE_NAME: payment-service-1
       DB_URL: jdbc:postgresql://postgres:5432/facketmaster
-      DB_USER: ${DB_USER:-facketmaster}
-      DB_PASSWORD: ${DB_PASSWORD:-facketmaster123}
-      JWT_SECRET: ${JWT_SECRET:-seu_jwt_secret_super_secreto_aqui_2026}
-      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-dev}
-      REDIS_HOST: redis
-      REDIS_PORT: 6379
-      REDIS_PASSWORD: ${REDIS_PASSWORD:-}
-      RABBITMQ_HOST: rabbitmq
-      RABBITMQ_PORT: 5672
-      RABBITMQ_USER: ${RABBITMQ_USER:-guest}
-      RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD:-guest}
-      RABBITMQ_VHOST: ${RABBITMQ_VHOST:-/}
-      PAYMENT_MOCK_DELAY_MS: ${PAYMENT_MOCK_DELAY_MS:-500}
-      PIX_EXPIRACAO_MINUTOS: ${PIX_EXPIRACAO_MINUTOS:-30}
-      BOLETO_EXPIRACAO_DIAS: ${BOLETO_EXPIRACAO_DIAS:-3}
-      PAYMENT_CACHE_TTL_SECONDS: ${PAYMENT_CACHE_TTL_SECONDS:-600}
+      DB_USER: ${DB_USER}
+      DB_PASSWORD: ${DB_PASSWORD}
+      JWT_SECRET: ${JWT_SECRET}
+      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE}
+      REDIS_HOST: ${REDIS_HOST}
+      REDIS_PORT: ${REDIS_PORT}
+      REDIS_PASSWORD: ${REDIS_PASSWORD}
+      RABBITMQ_HOST: ${RABBITMQ_HOST}
+      RABBITMQ_PORT: ${RABBITMQ_PORT}
+      RABBITMQ_USER: ${RABBITMQ_USER}
+      RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD}
+      RABBITMQ_VHOST: ${RABBITMQ_VHOST}
+      PAYMENT_MOCK_DELAY_MS: ${PAYMENT_MOCK_DELAY_MS}
+      APP_PAYMENT_MOCK_DELAY_MS: ${PAYMENT_MOCK_DELAY_MS}
+      PIX_EXPIRACAO_MINUTOS: ${PIX_EXPIRACAO_MINUTOS}
+      BOLETO_EXPIRACAO_DIAS: ${BOLETO_EXPIRACAO_DIAS}
+      PAYMENT_CACHE_TTL_SECONDS: ${PAYMENT_CACHE_TTL_SECONDS}
+      EVENT_SERVICE_URL: ${EVENT_SERVICE_URL}
     depends_on:
       postgres:
         condition: service_healthy
@@ -221,23 +226,26 @@ services:
       dockerfile: payment-service/Dockerfile
     container_name: facketmaster-payment-service-2
     environment:
+      INSTANCE_NAME: payment-service-2
       DB_URL: jdbc:postgresql://postgres:5432/facketmaster
-      DB_USER: ${DB_USER:-facketmaster}
-      DB_PASSWORD: ${DB_PASSWORD:-facketmaster123}
-      JWT_SECRET: ${JWT_SECRET:-seu_jwt_secret_super_secreto_aqui_2026}
-      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-dev}
-      REDIS_HOST: redis
-      REDIS_PORT: 6379
-      REDIS_PASSWORD: ${REDIS_PASSWORD:-}
-      RABBITMQ_HOST: rabbitmq
-      RABBITMQ_PORT: 5672
-      RABBITMQ_USER: ${RABBITMQ_USER:-guest}
-      RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD:-guest}
-      RABBITMQ_VHOST: ${RABBITMQ_VHOST:-/}
-      PAYMENT_MOCK_DELAY_MS: ${PAYMENT_MOCK_DELAY_MS:-500}
-      PIX_EXPIRACAO_MINUTOS: ${PIX_EXPIRACAO_MINUTOS:-30}
-      BOLETO_EXPIRACAO_DIAS: ${BOLETO_EXPIRACAO_DIAS:-3}
-      PAYMENT_CACHE_TTL_SECONDS: ${PAYMENT_CACHE_TTL_SECONDS:-600}
+      DB_USER: ${DB_USER}
+      DB_PASSWORD: ${DB_PASSWORD}
+      JWT_SECRET: ${JWT_SECRET}
+      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE}
+      REDIS_HOST: ${REDIS_HOST}
+      REDIS_PORT: ${REDIS_PORT}
+      REDIS_PASSWORD: ${REDIS_PASSWORD}
+      RABBITMQ_HOST: ${RABBITMQ_HOST}
+      RABBITMQ_PORT: ${RABBITMQ_PORT}
+      RABBITMQ_USER: ${RABBITMQ_USER}
+      RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD}
+      RABBITMQ_VHOST: ${RABBITMQ_VHOST}
+      PAYMENT_MOCK_DELAY_MS: ${PAYMENT_MOCK_DELAY_MS}
+      APP_PAYMENT_MOCK_DELAY_MS: ${PAYMENT_MOCK_DELAY_MS}
+      PIX_EXPIRACAO_MINUTOS: ${PIX_EXPIRACAO_MINUTOS}
+      BOLETO_EXPIRACAO_DIAS: ${BOLETO_EXPIRACAO_DIAS}
+      PAYMENT_CACHE_TTL_SECONDS: ${PAYMENT_CACHE_TTL_SECONDS}
+      EVENT_SERVICE_URL: ${EVENT_SERVICE_URL}
     depends_on:
       postgres:
         condition: service_healthy
@@ -283,7 +291,9 @@ services:
     ports:
       - "3000:3000"
     volumes:
+      - grafana_data:/var/lib/grafana
       - ./observability/grafana/provisioning:/etc/grafana/provisioning
+      - ./observability/grafana/dashboards:/var/lib/grafana/dashboards
     depends_on:
       - loki
     networks:
@@ -313,6 +323,7 @@ volumes:
     driver: local
   rabbitmq_data:
     driver: local
+  grafana_data:
 
 networks:
   facketmaster-network:

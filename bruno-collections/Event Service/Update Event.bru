@@ -1,7 +1,7 @@
 meta {
   name: Update Event
   type: http
-  seq: 4
+  seq: 3
 }
 
 patch {
@@ -15,13 +15,13 @@ headers {
 }
 
 auth:bearer {
-  token: 
+  token: {{admin_token}}
 }
 
 body:json {
   {
-    "name": "Show da Banda Rock - Edição Especial",
-    "description": "Um show de rock imperdível com convidados!",
-    "location": "Arena Rock"
+    "nome": "Show da Banda Rock - Edição Especial",
+    "descricao": "Um show de rock imperdível com convidados!",
+    "local": "Arena Rock"
   }
 }

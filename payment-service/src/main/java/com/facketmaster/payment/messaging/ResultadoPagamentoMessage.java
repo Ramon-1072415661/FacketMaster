@@ -24,6 +24,7 @@ public class ResultadoPagamentoMessage implements Serializable {
     private UUID pedidoId;
     private Long eventoId;
     private String usuarioId;
+    private Integer quantidade;
     private StatusPedido statusPedido;
     private StatusPagamento statusPagamento;
     private String codigoTransacao;

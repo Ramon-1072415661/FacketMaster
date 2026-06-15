@@ -9,19 +9,25 @@ post {
   body: json
   auth: none
 }
+
 headers {
   Content-Type: application/json
 }
+
 body:json {
   {
     "email": "user@example.com",
     "password": "password123"
   }
 }
+
 script:post-response {
-  const token = res.getBody();
-  if (token) {
-    bru.setVar('user_token', token);
-    console.log('User Token saved:', token);
+  const body = res.getBody();
+  const token = typeof body === 'string' ? body : JSON.stringify(body);
+  if (token && res.getStatus() === 200) {
+    bru.setEnvVar('user_token', token);
+    console.log('User token saved');
+  } else {
+    console.log('Login failed, status:', res.getStatus());
   }
 }

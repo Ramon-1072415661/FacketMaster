@@ -29,6 +29,19 @@ public class GlobalExceptionHandler {
         );
     }
 
+    @ExceptionHandler(EstoqueInsuficienteException.class)
+    public ResponseEntity<ErroResponse> handleEstoqueInsuficiente(EstoqueInsuficienteException ex) {
+        log.warn("Estoque insuficiente: {}", ex.getMessage());
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(
+                ErroResponse.builder()
+                        .status(409)
+                        .erro("Estoque Insuficiente")
+                        .mensagem(ex.getMessage())
+                        .timestamp(LocalDateTime.now())
+                        .build()
+        );
+    }
+
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<ErroResponse> handleValidation(MethodArgumentNotValidException ex) {
         String detalhes = ex.getBindingResult().getFieldErrors().stream()

@@ -1,7 +1,7 @@
 meta {
   name: Update Event Price
   type: http
-  seq: 6
+  seq: 5
 }
 
 patch {
@@ -12,6 +12,10 @@ patch {
 
 headers {
   Content-Type: application/json
+}
+
+auth:bearer {
+  token: {{admin_token}}
 }
 
 body:json {

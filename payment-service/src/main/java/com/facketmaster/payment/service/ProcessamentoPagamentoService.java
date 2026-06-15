@@ -1,5 +1,7 @@
 package com.facketmaster.payment.service;
 
+import com.facketmaster.config.AuthenticatedUserProvider;
+import com.facketmaster.controller.response.JwtTokenResponse;
 import com.facketmaster.payment.entity.Ingresso;
 import com.facketmaster.payment.entity.Pagamento;
 import com.facketmaster.payment.entity.Pedido;
@@ -17,6 +19,7 @@ import com.facketmaster.payment.repository.PagamentoRepository;
 import com.facketmaster.payment.repository.PedidoRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -25,19 +28,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
-/**
- * Coração do payment-service: processa mensagens da fila de forma assíncrona.
- * <p>
- * Fluxo completo:
- * 1. Recebe PedidoPagamentoMessage da fila
- * 2. Carrega o Pedido do banco (criado pelo PedidoService antes de publicar)
- * 3. Atualiza status para PROCESSANDO
- * 4. Chama o gateway correto (mock)
- * 5. Atualiza Pagamento e Pedido com o resultado
- * 6. Se APROVADO: emite os Ingressos
- * 7. Atualiza o cache Redis
- * 8. Publica ResultadoPagamentoMessage na fila de resultado
- */
+import static net.logstash.logback.argument.StructuredArguments.kv;
+
 @Slf4j
 @Service
 @RequiredArgsConstructor
@@ -49,27 +41,57 @@ public class ProcessamentoPagamentoService {
     private final GatewayFactory gatewayFactory;
     private final PaymentPublisher publisher;
     private final PedidoCacheService cacheService;
+    private final EmailService emailService;
+    private final AuthenticatedUserProvider authenticatedUserProvider;
 
     @Transactional
     public void processar(PedidoPagamentoMessage message) {
+        JwtTokenResponse user = authenticatedUserProvider.getCurrentUser();
+
         log.info("[PROCESSAMENTO] Iniciando | pedidoId={}", message.getPedidoId());
+
+        log.info(
+                "business_event",
+                kv("event_type", "STARTING_PAYMENT_PROCESSING"),
+                kv("order_id", message.getPedidoId()),
+                kv("user_id", user != null ? user.id() : null),
+                kv("user_email", user != null ? user.email() : "unknown"),
+                kv("user_role", user != null ? user.role() : "unknown")
+        );
 
         Pedido pedido = pedidoRepository.findById(message.getPedidoId())
                 .orElseThrow(() -> new IllegalStateException(
                         "Pedido não encontrado: " + message.getPedidoId()));
 
         if (pedido.getStatusPedido() == StatusPedido.APROVADO
-                || pedido.getStatusPedido() == StatusPedido.CANCELADO) {
+                || pedido.getStatusPedido() == StatusPedido.CANCELADO
+                || pedido.getStatusPedido() == StatusPedido.RECUSADO) {
             log.warn("[PROCESSAMENTO] Pedido já finalizado, ignorando | pedidoId={} status={}",
                     pedido.getId(), pedido.getStatusPedido());
+
+            log.info(
+                    "business_event",
+                    kv("event_type", "ORDER_COMPLETE"),
+                    kv("log_description", "Order has already been completed"),
+                    kv("order_id", message.getPedidoId()),
+                    kv("order_status", pedido.getStatusPedido()),
+                    kv("user_id", user != null ? user.id() : null),
+                    kv("user_email", user != null ? user.email() : "unknown"),
+                    kv("user_role", user != null ? user.role() : "unknown")
+            );
             return;
         }
 
         pedido.setStatusPedido(StatusPedido.PROCESSANDO);
         pedidoRepository.save(pedido);
+        emailService.notificar(pedido.getUsuarioEmail(), pedido.getId(), StatusPedido.PROCESSANDO);
 
-        Pagamento pagamento = criarPagamentoInicial(pedido, message.getMetodoPagamento());
-        pagamentoRepository.save(pagamento);
+        Pagamento pagamento = pagamentoRepository
+                .findTopByPedidoIdOrderByCriadoEmDesc(message.getPedidoId())
+                .orElseGet(() -> {
+                    Pagamento p = criarPagamentoInicial(pedido, message.getMetodoPagamento());
+                    return pagamentoRepository.save(p);
+                });
         cacheService.atualizarCache(pedido, pagamento, List.of());
 
         GatewayPagamento gateway = gatewayFactory.resolver(message.getMetodoPagamento());
@@ -89,19 +111,55 @@ public class ProcessamentoPagamentoService {
             log.info("[PROCESSAMENTO] Aguardando confirmação | pedidoId={} metodo={}",
                     pedido.getId(), message.getMetodoPagamento());
 
+            log.info(
+                    "business_event",
+                    kv("event_type", "PAYMENT_AWAITING_CONFIRMATION"),
+                    kv("order_id", pedido.getId()),
+                    kv("order_status", pedido.getStatusPedido()),
+                    kv("payment_method", pedido.getMetodoPagamento()),
+                    kv("user_id", user != null ? user.id() : null),
+                    kv("user_email", user != null ? user.email() : "unknown"),
+                    kv("user_role", user != null ? user.role() : "unknown")
+            );
+
         } else if (resultado.aprovado()) {
             pagamento.setStatusPagamento(StatusPagamento.APROVADO);
             pagamento.setDataAprovacao(LocalDateTime.now());
             pedido.setStatusPedido(StatusPedido.APROVADO);
+            emailService.notificar(pedido.getUsuarioEmail(), pedido.getId(), StatusPedido.APROVADO);
             ingressosEmitidos = emitirIngressos(pedido);
             log.info("[PROCESSAMENTO] Pagamento APROVADO | pedidoId={}", pedido.getId());
+
+            log.info(
+                    "business_event",
+                    kv("event_type", "PAYMENT_APPROVED"),
+                    kv("order_id", pedido.getId()),
+                    kv("order_status", pedido.getStatusPedido()),
+                    kv("payment_method", pedido.getMetodoPagamento()),
+                    kv("user_id", user != null ? user.id() : null),
+                    kv("user_email", user != null ? user.email() : "unknown"),
+                    kv("user_role", user != null ? user.role() : "unknown")
+            );
 
         } else {
             pagamento.setStatusPagamento(StatusPagamento.RECUSADO);
             pagamento.setMotivoRecusa(resultado.motivoRecusa());
             pedido.setStatusPedido(StatusPedido.RECUSADO);
+            emailService.notificar(pedido.getUsuarioEmail(), pedido.getId(), StatusPedido.RECUSADO);
             log.warn("[PROCESSAMENTO] Pagamento RECUSADO | pedidoId={} motivo={}",
                     pedido.getId(), resultado.motivoRecusa());
+
+            log.info(
+                    "business_event",
+                    kv("event_type", "PAYMENT_REFUSED"),
+                    kv("order_id", pedido.getId()),
+                    kv("order_status", pedido.getStatusPedido()),
+                    kv("payment_method", pedido.getMetodoPagamento()),
+                    kv("reason", resultado.motivoRecusa()),
+                    kv("user_id", user != null ? user.id() : null),
+                    kv("user_email", user != null ? user.email() : "unknown"),
+                    kv("user_role", user != null ? user.role() : "unknown")
+            );
         }
 
         pagamentoRepository.save(pagamento);
@@ -113,13 +171,23 @@ public class ProcessamentoPagamentoService {
 
         log.info("[PROCESSAMENTO] Concluído | pedidoId={} statusFinal={}",
                 pedido.getId(), pedido.getStatusPedido());
+
+        log.info(
+                "business_event",
+                kv("event_type", "ORDER_PROCESSING_COMPLETE"),
+                kv("order_id", pedido.getId()),
+                kv("order_status", pedido.getStatusPedido()),
+                kv("payment_method", pedido.getMetodoPagamento()),
+                kv("user_id", user != null ? user.id() : null),
+                kv("user_email", user != null ? user.email() : "unknown"),
+                kv("user_role", user != null ? user.role() : "unknown")
+        );
     }
 
-    /**
-     * Confirma o pagamento de PIX ou Boleto (chamado via webhook simulado).
-     */
     @Transactional
     public void confirmarPagamento(UUID pedidoId) {
+        JwtTokenResponse user = authenticatedUserProvider.getCurrentUser();
+
         Pedido pedido = pedidoRepository.findById(pedidoId)
                 .orElseThrow(() -> new IllegalStateException("Pedido não encontrado: " + pedidoId));
 
@@ -141,8 +209,90 @@ public class ProcessamentoPagamentoService {
         pedidoRepository.save(pedido);
         cacheService.atualizarCache(pedido, pagamento, ingressosEmitidos);
         publisher.publicarResultado(montarResultado(pedido, pagamento, ingressosEmitidos));
+        emailService.notificar(pedido.getUsuarioEmail(), pedidoId, StatusPedido.APROVADO);
 
         log.info("[PROCESSAMENTO] Pagamento confirmado via webhook | pedidoId={}", pedidoId);
+
+        log.info(
+                "business_event",
+                kv("event_type", "PAYMENT_CONFIRMED"),
+                kv("order_id", pedido.getId()),
+                kv("user_id", user != null ? user.id() : null),
+                kv("user_email", user != null ? user.email() : "unknown"),
+                kv("user_role", user != null ? user.role() : "unknown")
+        );
+    }
+
+    @Transactional
+    public void cancelarPedido(UUID pedidoId) {
+        JwtTokenResponse user = authenticatedUserProvider.getCurrentUser();
+
+        Pedido pedido = pedidoRepository.findById(pedidoId)
+                .orElseThrow(() -> new IllegalStateException("Pedido não encontrado: " + pedidoId));
+
+        if (pedido.getStatusPedido() == StatusPedido.APROVADO
+                || pedido.getStatusPedido() == StatusPedido.CANCELADO
+                || pedido.getStatusPedido() == StatusPedido.EXPIRADO) {
+            throw new IllegalStateException("Pedido não pode ser cancelado no status atual: " + pedido.getStatusPedido());
+        }
+
+        Pagamento pagamento = pagamentoRepository
+                .findTopByPedidoIdOrderByCriadoEmDesc(pedidoId)
+                .orElseThrow(() -> new IllegalStateException("Pagamento não encontrado para pedido: " + pedidoId));
+
+        pagamento.setStatusPagamento(StatusPagamento.CANCELADO);
+        pedido.setStatusPedido(StatusPedido.CANCELADO);
+
+        pagamentoRepository.save(pagamento);
+        pedidoRepository.save(pedido);
+        cacheService.atualizarCache(pedido, pagamento, List.of());
+        emailService.notificar(pedido.getUsuarioEmail(), pedidoId, StatusPedido.CANCELADO);
+
+        log.info("[PROCESSAMENTO] Pedido cancelado | pedidoId={}", pedidoId);
+
+        log.info(
+                "business_event",
+                kv("event_type", "ORDER_CANCELLED"),
+                kv("order_id", pedido.getId()),
+                kv("user_id", user != null ? user.id() : null),
+                kv("user_email", user != null ? user.email() : "unknown"),
+                kv("user_role", user != null ? user.role() : "unknown")
+        );
+    }
+
+    @Scheduled(fixedDelayString = "${app.payment.expiracao-check-ms:60000}")
+    @Transactional
+    public void expirarPedidosVencidos() {
+        JwtTokenResponse user = authenticatedUserProvider.getCurrentUser();
+
+        List<Pagamento> vencidos = pagamentoRepository
+                .findByStatusPagamentoAndDataExpiracaoBefore(StatusPagamento.PROCESSANDO, LocalDateTime.now());
+
+        for (Pagamento pagamento : vencidos) {
+            Pedido pedido = pagamento.getPedido();
+            if (pedido.getStatusPedido() != StatusPedido.PROCESSANDO) {
+                continue;
+            }
+
+            pagamento.setStatusPagamento(StatusPagamento.EXPIRADO);
+            pedido.setStatusPedido(StatusPedido.EXPIRADO);
+
+            pagamentoRepository.save(pagamento);
+            pedidoRepository.save(pedido);
+            cacheService.atualizarCache(pedido, pagamento, List.of());
+            emailService.notificar(pedido.getUsuarioEmail(), pedido.getId(), StatusPedido.EXPIRADO);
+
+            log.info("[EXPIRACAO] Pedido expirado | pedidoId={}", pedido.getId());
+
+            log.info(
+                    "business_event",
+                    kv("event_type", "ORDER_EXPIRED"),
+                    kv("order_id", pedido.getId()),
+                    kv("user_id", user != null ? user.id() : null),
+                    kv("user_email", user != null ? user.email() : "unknown"),
+                    kv("user_role", user != null ? user.role() : "unknown")
+            );
+        }
     }
 
     private Pagamento criarPagamentoInicial(Pedido pedido, MetodoPagamento metodo) {
@@ -155,6 +305,8 @@ public class ProcessamentoPagamentoService {
     }
 
     private List<Ingresso> emitirIngressos(Pedido pedido) {
+        JwtTokenResponse user = authenticatedUserProvider.getCurrentUser();
+
         List<Ingresso> ingressos = new ArrayList<>();
         for (int i = 0; i < pedido.getQuantidade(); i++) {
             Ingresso ingresso = Ingresso.builder()
@@ -167,6 +319,16 @@ public class ProcessamentoPagamentoService {
             ingressos.add(ingressoRepository.save(ingresso));
         }
         log.info("[PROCESSAMENTO] {} ingresso(s) emitido(s) | pedidoId={}", ingressos.size(), pedido.getId());
+
+        log.info(
+                "business_event",
+                kv("event_type", "TICKET_CREATED"),
+                kv("order_id", pedido.getId()),
+                kv("ticket_amount", ingressos.size()),
+                kv("user_id", user != null ? user.id() : null),
+                kv("user_email", user != null ? user.email() : "unknown"),
+                kv("user_role", user != null ? user.role() : "unknown")
+        );
         return ingressos;
     }
 
@@ -192,6 +354,7 @@ public class ProcessamentoPagamentoService {
                 .pedidoId(pedido.getId())
                 .eventoId(pedido.getEventoId())
                 .usuarioId(pedido.getUsuarioId())
+                .quantidade(pedido.getQuantidade())
                 .statusPedido(pedido.getStatusPedido())
                 .statusPagamento(pagamento.getStatusPagamento())
                 .codigoTransacao(pagamento.getCodigoTransacao())

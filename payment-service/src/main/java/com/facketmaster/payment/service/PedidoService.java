@@ -1,5 +1,8 @@
 package com.facketmaster.payment.service;
 
+import com.facketmaster.config.AuthenticatedUserProvider;
+import com.facketmaster.controller.response.JwtTokenResponse;
+import com.facketmaster.payment.client.EventoClient;
 import com.facketmaster.payment.controller.request.CriarPedidoRequest;
 import com.facketmaster.payment.controller.response.PedidoResponse;
 import com.facketmaster.payment.entity.Pagamento;
@@ -16,22 +19,16 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import java.math.BigDecimal;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
-/**
- * Orquestra a criação de pedidos e publicação na fila de mensageria.
- * <p>
- * Fluxo de criação:
- * 1. Persiste o Pedido com status AGUARDANDO_PAGAMENTO
- * 2. Cria o Pagamento inicial (PENDENTE)
- * 3. Publica PedidoPagamentoMessage na fila RabbitMQ
- * 4. Retorna o PedidoResponse imediatamente (resposta síncrona)
- * 5. O processamento real acontece de forma assíncrona no PaymentConsumer
- */
+import static net.logstash.logback.argument.StructuredArguments.kv;
+
 @Slf4j
 @Service
 @RequiredArgsConstructor
@@ -43,42 +40,101 @@ public class PedidoService {
     private final PaymentPublisher publisher;
     private final PedidoCacheService cacheService;
     private final ProcessamentoPagamentoService processamentoService;
+    private final EventoClient eventoClient;
+    private final EmailService emailService;
+    private final AuthenticatedUserProvider authenticatedUserProvider;
 
     @Transactional
-    public PedidoResponse criar(CriarPedidoRequest request) {
+    public PedidoResponse criar(CriarPedidoRequest request, String usuarioId, String usuarioEmail, String authorizationHeader) {
+        JwtTokenResponse user = authenticatedUserProvider.getCurrentUser();
+
         log.info("[PEDIDO] Criando pedido | eventoId={} usuario={} metodo={}",
-                request.getEventoId(), request.getUsuarioId(), request.getMetodoPagamento());
+                request.getEventoId(), usuarioId, request.getMetodoPagamento());
 
-        BigDecimal valorTotal = request.getValorUnitario()
-                .multiply(BigDecimal.valueOf(request.getQuantidade()));
+        log.info(
+                "business_event",
+                kv("event_type", "CREATING_ORDER"),
+                kv("order_id", request.getEventoId()),
+                kv("order_payment_method", request.getMetodoPagamento()),
+                kv("user_id", user != null ? user.id() : null),
+                kv("user_email", user != null ? user.email() : "unknown"),
+                kv("user_role", user != null ? user.role() : "unknown")
+        );
 
-        Pedido pedido = Pedido.builder()
-                .eventoId(request.getEventoId())
-                .usuarioId(request.getUsuarioId())
-                .quantidade(request.getQuantidade())
-                .valorUnitario(request.getValorUnitario())
-                .valorTotal(valorTotal)
-                .metodoPagamento(request.getMetodoPagamento())
-                .statusPedido(StatusPedido.AGUARDANDO_PAGAMENTO)
-                .build();
+        eventoClient.reservar(request.getEventoId(), request.getQuantidade(), authorizationHeader);
 
-        pedido = pedidoRepository.save(pedido);
+        try {
+            BigDecimal valorTotal = request.getValorUnitario()
+                    .multiply(BigDecimal.valueOf(request.getQuantidade()));
 
-        Pagamento pagamento = Pagamento.builder()
-                .pedido(pedido)
-                .metodoPagamento(request.getMetodoPagamento())
-                .statusPagamento(StatusPagamento.PENDENTE)
-                .tentativas(0)
-                .build();
-        pagamento = pagamentoRepository.save(pagamento);
+            Pedido pedido = Pedido.builder()
+                    .eventoId(request.getEventoId())
+                    .usuarioId(usuarioId)
+                    .usuarioEmail(usuarioEmail)
+                    .quantidade(request.getQuantidade())
+                    .valorUnitario(request.getValorUnitario())
+                    .valorTotal(valorTotal)
+                    .metodoPagamento(request.getMetodoPagamento())
+                    .statusPedido(StatusPedido.AGUARDANDO_PAGAMENTO)
+                    .build();
 
-        cacheService.atualizarCache(pedido, pagamento, List.of());
+            pedido = pedidoRepository.save(pedido);
+            emailService.notificar(usuarioEmail, pedido.getId(), StatusPedido.AGUARDANDO_PAGAMENTO);
 
-        PedidoPagamentoMessage message = mapper.toMessage(pedido, request);
-        publisher.publicarPedido(message);
+            Pagamento pagamento = Pagamento.builder()
+                    .pedido(pedido)
+                    .metodoPagamento(request.getMetodoPagamento())
+                    .statusPagamento(StatusPagamento.PENDENTE)
+                    .tentativas(0)
+                    .build();
+            pagamento = pagamentoRepository.save(pagamento);
 
-        log.info("[PEDIDO] Pedido criado e publicado na fila | pedidoId={}", pedido.getId());
-        return mapper.toResponse(pedido, pagamento, List.of());
+            cacheService.atualizarCache(pedido, pagamento, List.of());
+
+            PedidoPagamentoMessage message = mapper.toMessage(pedido, request);
+
+            TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+                @Override
+                public void afterCommit() {
+                    publisher.publicarPedido(message);
+                }
+            });
+
+            log.info("[PEDIDO] Pedido criado e publicado na fila | pedidoId={}", pedido.getId());
+
+
+            log.info(
+                    "business_event",
+                    kv("event_type", "ORDER_CREATED"),
+                    kv("order_id", pedido.getId()),
+                    kv("order_amount", pedido.getQuantidade()),
+                    kv("order_total_value", pedido.getValorTotal()),
+                    kv("order_payment_method", pedido.getMetodoPagamento()),
+                    kv("order_status", pedido.getStatusPedido()),
+                    kv("order_createdAt", pedido.getCriadoEm()),
+                    kv("user_id", user != null ? user.id() : null),
+                    kv("user_email", user != null ? user.email() : "unknown"),
+                    kv("user_role", user != null ? user.role() : "unknown")
+            );
+            return mapper.toResponse(pedido, pagamento, List.of());
+        } catch (Exception ex) {
+            log.error("[PEDIDO] Falha ao criar pedido após reserva de ingressos, liberando reserva | eventoId={} quantidade={}",
+                    request.getEventoId(), request.getQuantidade(), ex);
+            eventoClient.liberar(request.getEventoId(), request.getQuantidade(), authorizationHeader);
+
+            log.error(
+                    "business_event",
+                    kv("event_type", "ORDER_CREATED_ERROR"),
+                    kv("order_id", request.getEventoId()),
+                    kv("order_amount", request.getQuantidade()),
+                    kv("error_message", ex),
+                    kv("user_id", user != null ? user.id() : null),
+                    kv("user_email", user != null ? user.email() : "unknown"),
+                    kv("user_role", user != null ? user.role() : "unknown")
+            );
+
+            throw ex;
+        }
     }
 
     @Transactional(readOnly = true)
@@ -118,6 +174,12 @@ public class PedidoService {
     @Transactional
     public PedidoResponse confirmarPagamento(UUID pedidoId) {
         processamentoService.confirmarPagamento(pedidoId);
+        return buscarPorId(pedidoId);
+    }
+
+    @Transactional
+    public PedidoResponse cancelarPedido(UUID pedidoId) {
+        processamentoService.cancelarPedido(pedidoId);
         return buscarPorId(pedidoId);
     }
 }

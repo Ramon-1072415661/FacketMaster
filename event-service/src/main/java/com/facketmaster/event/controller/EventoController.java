@@ -116,4 +116,40 @@ public class EventoController {
         EventoResponse response = service.updateStatus(id, request.status());
         return ResponseEntity.ok(response);
     }
+
+    /**
+     * Reserva ingressos do evento de forma atômica. Chamado pelo
+     * payment-service antes de persistir um pedido, para evitar overselling.
+     * Retorna 409 se não houver disponibilidade suficiente.
+     */
+    @PostMapping("/{id}/reserva")
+    public ResponseEntity<Void> reservar(
+            @PathVariable("id") Long id,
+            @RequestBody Map<String, Integer> body) {
+
+        Integer quantidade = body.get("quantidade");
+        if (quantidade == null || quantidade <= 0) {
+            return ResponseEntity.badRequest().build();
+        }
+
+        service.reservar(id, quantidade);
+        return ResponseEntity.ok().build();
+    }
+
+    /**
+     * Libera ingressos previamente reservados (pedido recusado/cancelado/expirado).
+     */
+    @PostMapping("/{id}/liberar")
+    public ResponseEntity<Void> liberar(
+            @PathVariable("id") Long id,
+            @RequestBody Map<String, Integer> body) {
+
+        Integer quantidade = body.get("quantidade");
+        if (quantidade == null || quantidade <= 0) {
+            return ResponseEntity.badRequest().build();
+        }
+
+        service.liberar(id, quantidade);
+        return ResponseEntity.ok().build();
+    }
 }

@@ -1,11 +1,23 @@
 meta {
   name: Get Event by ID
   type: http
-  seq: 3
+  seq: 2
 }
 
 get {
   url: {{base_url_event_service}}/api/v1/eventos/{{event_id}}
   body: none
   auth: bearer
+}
+
+auth:bearer {
+  token: {{user_token}}
+}
+
+script:post-response {
+  const response = res.getBody();
+  if (response && response.id) {
+    bru.setEnvVar('event_id', response.id);
+    console.log('Event ID saved:', response.id);
+  }
 }

@@ -1,0 +1,25 @@
+meta {
+  name: Reserve Tickets
+  type: http
+  seq: 8
+}
+
+post {
+  url: {{base_url_event_service}}/api/v1/eventos/{{event_id}}/reserva
+  body: json
+  auth: bearer
+}
+
+headers {
+  Content-Type: application/json
+}
+
+auth:bearer {
+  token: {{user_token}}
+}
+
+body:json {
+  {
+    "quantidade": 2
+  }
+}

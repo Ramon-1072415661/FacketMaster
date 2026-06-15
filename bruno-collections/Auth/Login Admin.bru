@@ -9,19 +9,25 @@ post {
   body: json
   auth: none
 }
+
 headers {
   Content-Type: application/json
 }
+
 body:json {
   {
     "email": "admin@example.com",
     "password": "adminpassword"
   }
 }
+
 script:post-response {
-  const token = res.getBody();
-  if (token) {
-    bru.setVar('admin_token', token);
-    console.log('Admin Token saved:', token);
+  const body = res.getBody();
+  const token = typeof body === 'string' ? body : JSON.stringify(body);
+  if (token && res.getStatus() === 200) {
+    bru.setEnvVar('admin_token', token);
+    console.log('Admin token saved');
+  } else {
+    console.log('Login failed, status:', res.getStatus());
   }
 }

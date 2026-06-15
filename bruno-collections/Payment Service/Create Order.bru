@@ -15,13 +15,12 @@ headers {
 }
 
 auth:bearer {
-  token: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJhZG1pbkBleGFtcGxlLmNvbSIsInVzZXJJZCI6MSwicm9sZSI6IkFETUlOIiwiaWF0IjoxNzgwODc2MTM5LCJleHAiOjE3ODA5NjI1Mzl9.ReU-dKpiiGqpHye8zlbELB-XCvvKXcq6hvqkPX42ILk
+  token: {{user_token}}
 }
 
 body:json {
   {
-    "usuarioId": "{{user_id}}",
-    "eventoId": "{{event_id}}",
+    "eventoId": {{event_id}},
     "quantidade": 2,
     "valorUnitario": 75.50,
     "metodoPagamento": "CARTAO_CREDITO",
@@ -38,8 +37,10 @@ body:json {
 
 script:post-response {
   const response = res.getBody();
-  if (response && response.id) {
-    bru.setVar('order_id', response.id);
-    console.log('Order ID saved:', response.id);
+  if (response && response.pedidoId && res.getStatus() === 202) {
+    bru.setEnvVar('order_id', response.pedidoId);
+    console.log('Order ID saved:', response.pedidoId);
+  } else {
+    console.log('Create order failed, status:', res.getStatus());
   }
 }
