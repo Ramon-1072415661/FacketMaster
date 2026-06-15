@@ -291,7 +291,9 @@ services:
     ports:
       - "3000:3000"
     volumes:
+      - grafana_data:/var/lib/grafana
       - ./observability/grafana/provisioning:/etc/grafana/provisioning
+      - ./observability/grafana/dashboards:/var/lib/grafana/dashboards
     depends_on:
       - loki
     networks:
@@ -321,6 +323,7 @@ volumes:
     driver: local
   rabbitmq_data:
     driver: local
+  grafana_data:
 
 networks:
   facketmaster-network:
